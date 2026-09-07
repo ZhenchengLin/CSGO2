@@ -1,0 +1,35 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# macOS
+.DS_Store
+
+# Secrets / local environment
+.env
+.env.*
+
+# Raw and generated data
+data/raw/*
+data/interim/*
+data/processed/*
+
+# Preserve data directories
+!data/raw/.gitkeep
+!data/interim/.gitkeep
+!data/processed/.gitkeep
+
+# Model / experiment artifacts
+artifacts/*
+!artifacts/.gitkeep
+
+# Frontend
+node_modules/
+.next/
+
+# IDE
+.vscode/
+.idea/
