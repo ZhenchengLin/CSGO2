@@ -433,6 +433,530 @@ def require_snapshot(
 
 
 # ==================================================
+# Pure V0 feature calculation
+# ==================================================
+
+def build_feature_row(
+    *,
+    horizon_sec,
+    current,
+    previous,
+    bomb_now,
+    bomb_previous,
+):
+    """
+    Build one V0 feature row using only information
+    available at the observation time.
+
+    This function must NOT use:
+
+    - final round outcome
+    - future plant events
+    - round winner
+    - future player state
+    - demo filename
+    - training label
+
+    Parameters
+    ----------
+    horizon_sec:
+        Seconds since freeze_end for this observation.
+
+    current:
+        Player snapshot at the observation time.
+
+    previous:
+        Player snapshot one motion window earlier.
+
+    bomb_now:
+        (x, y, z) bomb position at the observation time.
+
+    bomb_previous:
+        (x, y, z) bomb position one motion window earlier.
+
+    Returns
+    -------
+    dict
+        Feature values plus runtime QA metadata.
+    """
+
+    # ==============================================
+    # Current alive teams
+    # ==============================================
+
+    t_alive_df = current.filter(
+        (pl.col("side") == "t")
+        & (pl.col("health") > 0)
+    )
+
+    ct_alive_df = current.filter(
+        (pl.col("side") == "ct")
+        & (pl.col("health") > 0)
+    )
+
+    if t_alive_df.height == 0:
+        raise ValueError(
+            "Cannot build V0 features with "
+            "zero alive T players"
+        )
+
+    # ==============================================
+    # A1 — Offensive Geometry
+    # ==============================================
+
+    t_cx, t_cy, t_cz = centroid(
+        t_alive_df
+    )
+
+    t_stretch = stretch_xy(
+        t_alive_df,
+        t_cx,
+        t_cy,
+    )
+
+    t_range_x = (
+        t_alive_df["X"].max()
+        - t_alive_df["X"].min()
+    )
+
+    t_range_y = (
+        t_alive_df["Y"].max()
+        - t_alive_df["Y"].min()
+    )
+
+    t_pairwise = mean_pairwise_distance(
+        t_alive_df
+    )
+
+    t_hull = convex_hull_area_xy(
+        t_alive_df
+    )
+
+    (
+        bomb_x,
+        bomb_y,
+        bomb_z,
+    ) = bomb_now
+
+    bomb_to_t_centroid = distance_xy(
+        bomb_x,
+        bomb_y,
+        t_cx,
+        t_cy,
+    )
+
+    # ==============================================
+    # A2 — Motion
+    #
+    # Only identities alive NOW are compared against
+    # their positions one second earlier.
+    #
+    # This exactly preserves the frozen V0 design.
+    # ==============================================
+
+    current_t = (
+        t_alive_df
+        .select([
+            "steamid",
+            "X",
+            "Y",
+            "Z",
+        ])
+        .rename({
+            "X": "current_X",
+            "Y": "current_Y",
+            "Z": "current_Z",
+        })
+    )
+
+    previous_t = (
+        previous
+        .select([
+            "steamid",
+            "X",
+            "Y",
+            "Z",
+        ])
+        .rename({
+            "X": "previous_X",
+            "Y": "previous_Y",
+            "Z": "previous_Z",
+        })
+    )
+
+    movement = (
+        current_t
+        .join(
+            previous_t,
+            on="steamid",
+            how="inner",
+        )
+    )
+
+    if movement.height == 0:
+        raise ValueError(
+            "No comparable T players "
+            "for motion features"
+        )
+
+    movement = (
+        movement
+        .with_columns([
+            (
+                (
+                    pl.col("current_X")
+                    - pl.col("previous_X")
+                )
+                / MOTION_WINDOW_SEC
+            ).alias("vx"),
+
+            (
+                (
+                    pl.col("current_Y")
+                    - pl.col("previous_Y")
+                )
+                / MOTION_WINDOW_SEC
+            ).alias("vy"),
+        ])
+        .with_columns(
+            (
+                pl.col("vx") ** 2
+                + pl.col("vy") ** 2
+            )
+            .sqrt()
+            .alias("speed")
+        )
+    )
+
+    t_mean_speed = (
+        movement["speed"].mean()
+    )
+
+    centroid_vx = (
+        movement["current_X"].mean()
+        - movement["previous_X"].mean()
+    ) / MOTION_WINDOW_SEC
+
+    centroid_vy = (
+        movement["current_Y"].mean()
+        - movement["previous_Y"].mean()
+    ) / MOTION_WINDOW_SEC
+
+    (
+        bomb_x_previous,
+        bomb_y_previous,
+        _,
+    ) = bomb_previous
+
+    bomb_speed = (
+        distance_xy(
+            bomb_x,
+            bomb_y,
+            bomb_x_previous,
+            bomb_y_previous,
+        )
+        / MOTION_WINDOW_SEC
+    )
+
+    # ==============================================
+    # A3 — Combat
+    # ==============================================
+
+    t_alive = t_alive_df.height
+    ct_alive = ct_alive_df.height
+
+    t_health_sum = (
+        t_alive_df["health"].sum()
+    )
+
+    ct_health_sum = (
+        ct_alive_df["health"].sum()
+    )
+
+    t_armor_sum = (
+        t_alive_df["armor"].sum()
+    )
+
+    ct_armor_sum = (
+        ct_alive_df["armor"].sum()
+    )
+
+    # ==============================================
+    # A4 — Economy
+    #
+    # Retained in the canonical dataset so the
+    # historical ablation remains reproducible.
+    #
+    # It is NOT part of V0_MODEL_FEATURES.
+    # ==============================================
+
+    t_equip_value_sum = (
+        t_alive_df[
+            "current_equip_value"
+        ].sum()
+    )
+
+    ct_equip_value_sum = (
+        ct_alive_df[
+            "current_equip_value"
+        ].sum()
+    )
+
+    # ==============================================
+    # A5 — Defense / Interaction
+    # ==============================================
+
+    if ct_alive_df.height > 0:
+
+        (
+            ct_cx,
+            ct_cy,
+            ct_cz,
+        ) = centroid(
+            ct_alive_df
+        )
+
+        ct_stretch = stretch_xy(
+            ct_alive_df,
+            ct_cx,
+            ct_cy,
+        )
+
+        ct_range_x = (
+            ct_alive_df["X"].max()
+            - ct_alive_df["X"].min()
+        )
+
+        ct_range_y = (
+            ct_alive_df["Y"].max()
+            - ct_alive_df["Y"].min()
+        )
+
+        ct_pairwise = (
+            mean_pairwise_distance(
+                ct_alive_df
+            )
+        )
+
+        ct_hull = (
+            convex_hull_area_xy(
+                ct_alive_df
+            )
+        )
+
+        t_ct_centroid_distance = (
+            distance_xy(
+                t_cx,
+                t_cy,
+                ct_cx,
+                ct_cy,
+            )
+        )
+
+        cross_distances = []
+        nearest_distances = []
+
+        for t_player in (
+            t_alive_df
+            .iter_rows(named=True)
+        ):
+
+            distances_to_ct = []
+
+            for ct_player in (
+                ct_alive_df
+                .iter_rows(named=True)
+            ):
+
+                d = distance_xy(
+                    t_player["X"],
+                    t_player["Y"],
+                    ct_player["X"],
+                    ct_player["Y"],
+                )
+
+                cross_distances.append(
+                    d
+                )
+
+                distances_to_ct.append(
+                    d
+                )
+
+            nearest_distances.append(
+                min(distances_to_ct)
+            )
+
+        minimum_t_ct_distance = min(
+            cross_distances
+        )
+
+        mean_nearest_opponent_distance = (
+            sum(nearest_distances)
+            / len(nearest_distances)
+        )
+
+    else:
+
+        ct_cx = 0.0
+        ct_cy = 0.0
+        ct_cz = 0.0
+
+        ct_stretch = 0.0
+        ct_range_x = 0.0
+        ct_range_y = 0.0
+
+        ct_pairwise = 0.0
+        ct_hull = 0.0
+
+        t_ct_centroid_distance = 0.0
+        minimum_t_ct_distance = 0.0
+        mean_nearest_opponent_distance = 0.0
+
+    # ==============================================
+    # Pure feature output
+    # ==============================================
+
+    return {
+
+        # Model context
+        "horizon_sec":
+            horizon_sec,
+
+        # A1
+        "t_centroid_x":
+            t_cx,
+
+        "t_centroid_y":
+            t_cy,
+
+        "t_centroid_z":
+            t_cz,
+
+        "t_stretch_xy":
+            t_stretch,
+
+        "t_range_x":
+            t_range_x,
+
+        "t_range_y":
+            t_range_y,
+
+        "t_mean_pairwise_distance":
+            t_pairwise,
+
+        "t_convex_hull_area":
+            t_hull,
+
+        "bomb_x":
+            bomb_x,
+
+        "bomb_y":
+            bomb_y,
+
+        "bomb_z":
+            bomb_z,
+
+        "bomb_to_t_centroid_distance":
+            bomb_to_t_centroid,
+
+        # A2
+        "t_mean_speed_1s":
+            t_mean_speed,
+
+        "t_centroid_velocity_x_1s":
+            centroid_vx,
+
+        "t_centroid_velocity_y_1s":
+            centroid_vy,
+
+        "bomb_speed_1s":
+            bomb_speed,
+
+        # A3
+        "t_alive":
+            t_alive,
+
+        "ct_alive":
+            ct_alive,
+
+        "alive_difference":
+            t_alive
+            - ct_alive,
+
+        "t_health_sum":
+            t_health_sum,
+
+        "ct_health_sum":
+            ct_health_sum,
+
+        "health_difference":
+            t_health_sum
+            - ct_health_sum,
+
+        "t_armor_sum":
+            t_armor_sum,
+
+        "ct_armor_sum":
+            ct_armor_sum,
+
+        "armor_difference":
+            t_armor_sum
+            - ct_armor_sum,
+
+        # A4
+        "t_equip_value_sum":
+            t_equip_value_sum,
+
+        "ct_equip_value_sum":
+            ct_equip_value_sum,
+
+        "equip_value_difference":
+            t_equip_value_sum
+            - ct_equip_value_sum,
+
+        # A5
+        "ct_centroid_x":
+            ct_cx,
+
+        "ct_centroid_y":
+            ct_cy,
+
+        "ct_centroid_z":
+            ct_cz,
+
+        "ct_stretch_xy":
+            ct_stretch,
+
+        "ct_range_x":
+            ct_range_x,
+
+        "ct_range_y":
+            ct_range_y,
+
+        "ct_mean_pairwise_distance":
+            ct_pairwise,
+
+        "ct_convex_hull_area":
+            ct_hull,
+
+        "t_ct_centroid_distance":
+            t_ct_centroid_distance,
+
+        "minimum_t_ct_distance":
+            minimum_t_ct_distance,
+
+        "mean_nearest_opponent_distance":
+            mean_nearest_opponent_distance,
+
+        # Runtime QA
+        "qa_motion_players_used":
+            movement.height,
+    }
+
+
+
+# ==================================================
 # Main FeatureBuilder
 # ==================================================
 
@@ -504,59 +1028,14 @@ def build_features_for_demo(
         )
 
         # ==========================================
-        # Current alive teams
+        # Adapter-specific bomb reconstruction
+        #
+        # Historical demos reconstruct bomb state
+        # from inventory + bomb events.
+        #
+        # The pure FeatureBuilder only receives the
+        # resulting bomb positions.
         # ==========================================
-
-        t_alive_df = current.filter(
-            (pl.col("side") == "t")
-            & (pl.col("health") > 0)
-        )
-
-        ct_alive_df = current.filter(
-            (pl.col("side") == "ct")
-            & (pl.col("health") > 0)
-        )
-
-        if t_alive_df.height == 0:
-            raise ValueError(
-                f"No alive T players at "
-                f"round={round_num}, "
-                f"horizon={horizon_sec}"
-            )
-
-        # ==========================================
-        # A1 — Offensive Geometry
-        # ==========================================
-
-        t_cx, t_cy, t_cz = centroid(
-            t_alive_df
-        )
-
-        t_stretch = stretch_xy(
-            t_alive_df,
-            t_cx,
-            t_cy,
-        )
-
-        t_range_x = (
-            t_alive_df["X"].max()
-            - t_alive_df["X"].min()
-        )
-
-        t_range_y = (
-            t_alive_df["Y"].max()
-            - t_alive_df["Y"].min()
-        )
-
-        t_pairwise = (
-            mean_pairwise_distance(
-                t_alive_df
-            )
-        )
-
-        t_hull = convex_hull_area_xy(
-            t_alive_df
-        )
 
         (
             bomb_x,
@@ -570,119 +1049,10 @@ def build_features_for_demo(
             target_tick,
         )
 
-        bomb_to_t_centroid = (
-            distance_xy(
-                bomb_x,
-                bomb_y,
-                t_cx,
-                t_cy,
-            )
-        )
-
-        # ==========================================
-        # A2 — Motion
-        #
-        # Current-alive identities are compared
-        # against their positions one second ago.
-        # ==========================================
-
-        current_t = (
-            t_alive_df
-            .select([
-                "steamid",
-                "X",
-                "Y",
-                "Z",
-            ])
-            .rename({
-                "X": "current_X",
-                "Y": "current_Y",
-                "Z": "current_Z",
-            })
-        )
-
-        previous_t = (
-            previous
-            .select([
-                "steamid",
-                "X",
-                "Y",
-                "Z",
-            ])
-            .rename({
-                "X": "previous_X",
-                "Y": "previous_Y",
-                "Z": "previous_Z",
-            })
-        )
-
-        movement = (
-            current_t
-            .join(
-                previous_t,
-                on="steamid",
-                how="inner",
-            )
-        )
-
-        if movement.height == 0:
-            raise ValueError(
-                f"No comparable T players at "
-                f"round={round_num}, "
-                f"horizon={horizon_sec}"
-            )
-
-        movement = (
-            movement
-            .with_columns([
-                (
-                    (
-                        pl.col("current_X")
-                        - pl.col("previous_X")
-                    )
-                    / MOTION_WINDOW_SEC
-                ).alias("vx"),
-
-                (
-                    (
-                        pl.col("current_Y")
-                        - pl.col("previous_Y")
-                    )
-                    / MOTION_WINDOW_SEC
-                ).alias("vy"),
-            ])
-            .with_columns(
-                (
-                    pl.col("vx") ** 2
-                    + pl.col("vy") ** 2
-                )
-                .sqrt()
-                .alias("speed")
-            )
-        )
-
-        t_mean_speed = (
-            movement["speed"].mean()
-        )
-
-        centroid_vx = (
-            movement["current_X"].mean()
-            - movement[
-                "previous_X"
-            ].mean()
-        ) / MOTION_WINDOW_SEC
-
-        centroid_vy = (
-            movement["current_Y"].mean()
-            - movement[
-                "previous_Y"
-            ].mean()
-        ) / MOTION_WINDOW_SEC
-
         (
             bomb_x_prev,
             bomb_y_prev,
-            _,
+            bomb_z_prev,
             bomb_state_prev,
         ) = get_bomb_position(
             demo,
@@ -691,173 +1061,35 @@ def build_features_for_demo(
             previous_tick,
         )
 
-        bomb_speed = (
-            distance_xy(
+        # ==========================================
+        # Shared feature calculation
+        #
+        # No future label or round outcome enters
+        # build_feature_row().
+        # ==========================================
+
+        feature_row = build_feature_row(
+            horizon_sec=horizon_sec,
+            current=current,
+            previous=previous,
+            bomb_now=(
                 bomb_x,
                 bomb_y,
+                bomb_z,
+            ),
+            bomb_previous=(
                 bomb_x_prev,
                 bomb_y_prev,
-            )
-            / MOTION_WINDOW_SEC
+                bomb_z_prev,
+            ),
         )
 
         # ==========================================
-        # A3 — Combat
-        # ==========================================
-
-        t_alive = t_alive_df.height
-        ct_alive = ct_alive_df.height
-
-        t_health_sum = (
-            t_alive_df["health"].sum()
-        )
-
-        ct_health_sum = (
-            ct_alive_df["health"].sum()
-        )
-
-        t_armor_sum = (
-            t_alive_df["armor"].sum()
-        )
-
-        ct_armor_sum = (
-            ct_alive_df["armor"].sum()
-        )
-
-        # ==========================================
-        # A4 — Economy
-        # ==========================================
-
-        t_equip_value_sum = (
-            t_alive_df[
-                "current_equip_value"
-            ].sum()
-        )
-
-        ct_equip_value_sum = (
-            ct_alive_df[
-                "current_equip_value"
-            ].sum()
-        )
-
-        # ==========================================
-        # A5 — Defense
-        # ==========================================
-
-        if ct_alive_df.height > 0:
-
-            (
-                ct_cx,
-                ct_cy,
-                ct_cz,
-            ) = centroid(
-                ct_alive_df
-            )
-
-            ct_stretch = stretch_xy(
-                ct_alive_df,
-                ct_cx,
-                ct_cy,
-            )
-
-            ct_range_x = (
-                ct_alive_df["X"].max()
-                - ct_alive_df["X"].min()
-            )
-
-            ct_range_y = (
-                ct_alive_df["Y"].max()
-                - ct_alive_df["Y"].min()
-            )
-
-            ct_pairwise = (
-                mean_pairwise_distance(
-                    ct_alive_df
-                )
-            )
-
-            ct_hull = (
-                convex_hull_area_xy(
-                    ct_alive_df
-                )
-            )
-
-            t_ct_centroid_distance = (
-                distance_xy(
-                    t_cx,
-                    t_cy,
-                    ct_cx,
-                    ct_cy,
-                )
-            )
-
-            cross_distances = []
-            nearest_distances = []
-
-            for t_player in (
-                t_alive_df
-                .iter_rows(named=True)
-            ):
-
-                distances_to_ct = []
-
-                for ct_player in (
-                    ct_alive_df
-                    .iter_rows(named=True)
-                ):
-
-                    d = distance_xy(
-                        t_player["X"],
-                        t_player["Y"],
-                        ct_player["X"],
-                        ct_player["Y"],
-                    )
-
-                    cross_distances.append(
-                        d
-                    )
-
-                    distances_to_ct.append(
-                        d
-                    )
-
-                nearest_distances.append(
-                    min(distances_to_ct)
-                )
-
-            minimum_t_ct_distance = min(
-                cross_distances
-            )
-
-            mean_nearest_opponent_distance = (
-                sum(nearest_distances)
-                / len(nearest_distances)
-            )
-
-        else:
-
-            ct_cx = 0.0
-            ct_cy = 0.0
-            ct_cz = 0.0
-
-            ct_stretch = 0.0
-            ct_range_x = 0.0
-            ct_range_y = 0.0
-
-            ct_pairwise = 0.0
-            ct_hull = 0.0
-
-            t_ct_centroid_distance = 0.0
-            minimum_t_ct_distance = 0.0
-            mean_nearest_opponent_distance = 0.0
-
-        # ==========================================
-        # Output row
+        # Offline-only metadata + target
         # ==========================================
 
         rows.append({
 
-            # Match / observation metadata
             "demo_filename":
                 demo_path.name,
 
@@ -870,134 +1102,7 @@ def build_features_for_demo(
             "target_tick":
                 target_tick,
 
-            # A1
-            "t_centroid_x":
-                t_cx,
-
-            "t_centroid_y":
-                t_cy,
-
-            "t_centroid_z":
-                t_cz,
-
-            "t_stretch_xy":
-                t_stretch,
-
-            "t_range_x":
-                t_range_x,
-
-            "t_range_y":
-                t_range_y,
-
-            "t_mean_pairwise_distance":
-                t_pairwise,
-
-            "t_convex_hull_area":
-                t_hull,
-
-            "bomb_x":
-                bomb_x,
-
-            "bomb_y":
-                bomb_y,
-
-            "bomb_z":
-                bomb_z,
-
-            "bomb_to_t_centroid_distance":
-                bomb_to_t_centroid,
-
-            # A2
-            "t_mean_speed_1s":
-                t_mean_speed,
-
-            "t_centroid_velocity_x_1s":
-                centroid_vx,
-
-            "t_centroid_velocity_y_1s":
-                centroid_vy,
-
-            "bomb_speed_1s":
-                bomb_speed,
-
-            # A3
-            "t_alive":
-                t_alive,
-
-            "ct_alive":
-                ct_alive,
-
-            "alive_difference":
-                t_alive - ct_alive,
-
-            "t_health_sum":
-                t_health_sum,
-
-            "ct_health_sum":
-                ct_health_sum,
-
-            "health_difference":
-                t_health_sum
-                - ct_health_sum,
-
-            "t_armor_sum":
-                t_armor_sum,
-
-            "ct_armor_sum":
-                ct_armor_sum,
-
-            "armor_difference":
-                t_armor_sum
-                - ct_armor_sum,
-
-            # A4
-            "t_equip_value_sum":
-                t_equip_value_sum,
-
-            "ct_equip_value_sum":
-                ct_equip_value_sum,
-
-            "equip_value_difference":
-                t_equip_value_sum
-                - ct_equip_value_sum,
-
-            # A5
-            "ct_centroid_x":
-                ct_cx,
-
-            "ct_centroid_y":
-                ct_cy,
-
-            "ct_centroid_z":
-                ct_cz,
-
-            "ct_stretch_xy":
-                ct_stretch,
-
-            "ct_range_x":
-                ct_range_x,
-
-            "ct_range_y":
-                ct_range_y,
-
-            "ct_mean_pairwise_distance":
-                ct_pairwise,
-
-            "ct_convex_hull_area":
-                ct_hull,
-
-            "t_ct_centroid_distance":
-                t_ct_centroid_distance,
-
-            "minimum_t_ct_distance":
-                minimum_t_ct_distance,
-
-            "mean_nearest_opponent_distance":
-                mean_nearest_opponent_distance,
-
-            # QA metadata
-            "qa_motion_players_used":
-                movement.height,
+            **feature_row,
 
             "qa_bomb_state_prev":
                 bomb_state_prev,
@@ -1005,10 +1110,10 @@ def build_features_for_demo(
             "qa_bomb_state_now":
                 bomb_state_now,
 
-            # Target
             "label":
                 label,
         })
+
 
     features = pl.DataFrame(rows)
 
