@@ -14,9 +14,11 @@ The project is being developed incrementally, with each version evaluated before
 
 **Current Model: V0 — Early-Round Site Outcome Forecaster**
 
-**V0 Status: Specification Frozen**
+**V0 Status: Offline Development Evaluation Frozen**
 
-The project is now moving from research and system definition into implementation.
+V0 has a completed offline development evaluation on 20 Mirage matches and 1,268 eligible observations. XGB-A5 is the selected development baseline: log loss 0.8024, Brier 0.4785, accuracy 62.85%, and macro F1 0.5996. These are grouped out-of-fold development results, not untouched final-test or live-serving results.
+
+Read the [complete V0 explanation](docs/v0_explained.md) or the [research website](site/index.html).
 
 ## V0 Research Question
 
@@ -240,6 +242,4 @@ The site will evolve alongside the project and eventually serve as the public ev
 
 ## Current Next Step
 
-The next implementation milestone is to inspect real historical demo data and real live-source payloads before finalizing the Canonical Game State schema.
-
-The schema will be based on actual source contracts and V0 requirements rather than assumptions.
+Freeze the existing V0 evidence. The next research hypothesis is to separate plant feasibility from conditional site choice and compare it against XGB-A5 on untouched matches or an appropriate nested evaluation. Replay and live-source feature parity remain separate engineering milestones.

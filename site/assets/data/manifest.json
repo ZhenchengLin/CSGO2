@@ -1,0 +1,22 @@
+{
+  "description": "Frozen V0 evaluation tables copied unchanged from local artifacts. Hashes identify the published evidence.",
+  "source_revision": "fadb1f1804d62ba2494bd0818c13450a57b591a7",
+  "table_sha256": {
+    "v0_a0_metrics.csv": "5c7ac41f5a74f2175e5163c76338cdfa99aef759892b23bf8f20e767036727b5",
+    "v0_a1_metrics.csv": "922a7d35e214a81e906e7267f9b8ee20e191901c1ba936cf8e232ca004ed2093",
+    "v0_a2_metrics.csv": "d19b46a6b6573d4700580a72228e5744306b344596cda5a38d275577627f81fc",
+    "v0_a3_metrics.csv": "66140de7c2a7f8f34b2723ab1f08ba67bdff07ad47bbcd39189ce31251b7f520",
+    "v0_a4_metrics.csv": "55387f2cfd5701612ad2d2f132f6c6ce9926c8738e07c89f17da2a4482cce3b0",
+    "v0_a5_metrics.csv": "1569beb4b6f119e5cda349c5b86ecd27c4d81e973dac77f72e2e6bd952dda813",
+    "v0_logistic_ablation_summary.csv": "9823cd6a7c5e950abb2822d7f94e240f89a72d8109f3e503dd1f5507b865a18b",
+    "v0_match_robustness.csv": "852d460730f01d4027a47e0d7171166a0922ed97904e4a8c919a9c6c4f3c9207",
+    "v0_match_uncertainty.csv": "12b00d408a86a5b7aa527b760eb2f49ac2a575e69b671f8ee4ca33cead97b7c6",
+    "v0_xgb_a5_calibration_bins.csv": "535a72ae275130029e6245124401a90f87b910a9b32023afcf3c8bb21ca2c66f",
+    "v0_xgb_a5_calibration_summary.csv": "4fa10af8a0374180beaae5c0c338af837f23c8e05e40e918c0d43b25b6eb88f3",
+    "v0_xgb_a5_confusion_matrix.csv": "4d43ff0f8eea23b1d5cb10104d592973762cbae2f1b5cc9a611f8aeeb109b33e",
+    "v0_xgb_a5_group_permutation_importance.csv": "513a88477819b02a26d4ddddc60c9d998deb40392478d08660dbc412d784ce0f",
+    "v0_xgb_a5_hierarchical_analysis.csv": "515b79fdb7aa4f5f14be7318debf4e6abf40acec5fe84e74c92a69bbc4abcefd",
+    "v0_xgb_a5_task_group_importance.csv": "a75adcf6846986fe3ce609154616c9c49aca2ccd6a22370ec983f0d6879f35e8",
+    "v0_xgboost_summary.csv": "ce9ea7565dd9332aaad26ee3940af34dd5d1f77e85b3839e0cb80f2e7c97ce5f"
+  }
+}

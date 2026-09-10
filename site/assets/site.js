@@ -1,1 +1,14 @@
-document.addEventListener('DOMContentLoaded',()=>{const p=document.body.dataset.page;document.querySelectorAll('.nav a').forEach(a=>{if(a.dataset.page===p)a.classList.add('active')});const b=document.querySelector('.menu'),s=document.querySelector('.side');if(b)b.onclick=()=>s.classList.toggle('open')});
+document.addEventListener('DOMContentLoaded', () => {
+ const page=document.body.dataset.page;
+ document.querySelectorAll('.nav a').forEach(a=>{if(a.dataset.page===page){a.classList.add('active');a.setAttribute('aria-current','page')}});
+ const button=document.querySelector('.menu'),side=document.querySelector('.side'),backdrop=document.querySelector('.menu-backdrop');
+ const setMenu=(open,focus=false)=>{side?.classList.toggle('open',open);if(side)side.inert=matchMedia('(max-width:900px)').matches&&!open;document.body.classList.toggle('menu-open',open);button?.setAttribute('aria-expanded',String(open));button?.setAttribute('aria-label',open?'Close navigation':'Open navigation');if(backdrop)backdrop.hidden=!open;if(focus)(open?side?.querySelector('a'):button)?.focus()};
+ button?.addEventListener('click',()=>setMenu(!side.classList.contains('open'),true));
+ backdrop?.addEventListener('click',()=>setMenu(false,true));
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&side?.classList.contains('open'))setMenu(false,true);if(e.key==='Tab'&&side?.classList.contains('open')){const links=[...side.querySelectorAll('a')];const first=links[0],last=links.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}});
+ const responsive=matchMedia('(max-width:900px)');
+ const syncNavigation=()=>{const closed=responsive.matches&&!side.classList.contains('open');side.inert=closed};
+ if(side&&button){new MutationObserver(syncNavigation).observe(side,{attributes:true,attributeFilter:['class']});responsive.addEventListener('change',()=>{setMenu(false);syncNavigation()});syncNavigation()}
+ const chapters=[...document.querySelectorAll('.article section[id]')],links=[...document.querySelectorAll('.chapter-nav a')];
+ if(chapters.length){const update=()=>{let current=chapters[0];for(const s of chapters)if(s.getBoundingClientRect().top<150)current=s;links.forEach(a=>{const active=a.hash==='#'+current.id;a.classList.toggle('active',active);if(active)a.setAttribute('aria-current','location');else a.removeAttribute('aria-current')});const bar=document.querySelector('.read-progress i');if(bar){const article=document.querySelector('.article'),rect=article.getBoundingClientRect();const denominator=article.offsetHeight-innerHeight;bar.style.width=(Math.max(0,Math.min(1,denominator>0?-rect.top/denominator:1))*100)+'%'}};let queued=false;addEventListener('scroll',()=>{if(!queued){queued=true;requestAnimationFrame(()=>{update();queued=false})}},{passive:true});update()}
+});

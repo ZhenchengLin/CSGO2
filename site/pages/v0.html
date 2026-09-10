@@ -1,1212 +1,281 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <title>V0 — Early-Round Site Outcome Forecaster</title>
-
-  <link rel="stylesheet" href="../assets/style.css">
-</head>
-
-<body>
-
-<header>
-  <nav>
-    <a href="../index.html">Home</a>
-    <a href="roadmap.html">Roadmap</a>
-    <a href="research.html">Research</a>
-    <a href="data.html">Data</a>
-    <a href="models.html">Models</a>
-    <a href="evidence.html">Evidence</a>
-    <a href="build-log.html">Build Log</a>
-    <a href="journey.html">Journey</a>
-  </nav>
-</header>
-
-
-<main>
-
-<section class="hero">
-  <p class="eyebrow">CS2 Tactical Intelligence · Version 0</p>
-
-  <h1>
-    Early-Round Site Outcome Forecaster
-  </h1>
-
-  <p>
-    V0 asks a deliberately narrow question:
-    given the observable state of a Mirage T-side round,
-    can we predict whether the round will eventually produce
-    an A plant, B plant, or no plant?
-  </p>
-
-  <p>
-    The purpose of V0 is not to recommend strategy yet.
-    It is to first prove that useful tactical prediction is possible.
-  </p>
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="The complete design story: what we predicted, how we investigated the data, why each model decision followed, and what the evidence actually supports."><meta name="theme-color" content="#142623"><title>Understanding V0 — CS2 Tactical Intelligence Lab</title><link rel="stylesheet" href="../assets/style.css"></head>
+<body data-page="v0"><a class="skip-link" href="#main">Skip to content</a><div class="shell"><aside class="side" id="site-navigation" aria-label="Lab navigation"><a class="brand" href="../index.html"><span class="mark">cti<span>↗</span></span><span><small>Independent research</small><strong>CS2 Tactical<br>Intelligence Lab</strong></span></a><div class="nav-label">The research notebook</div><nav class="nav"><a data-page="home" href="../index.html"><span>01</span>Overview</a><a data-page="v0" href="../pages/v0.html" class="active" aria-current="page"><span>02</span>Understanding V0</a><a data-page="evidence" href="../pages/evidence.html"><span>03</span>Results & evidence</a><a data-page="models" href="../pages/models.html"><span>04</span>Models</a><a data-page="data" href="../pages/data.html"><span>05</span>Data & pipeline</a><a data-page="roadmap" href="../pages/roadmap.html"><span>06</span>Roadmap</a><a data-page="decisions" href="../pages/decisions.html"><span>07</span>Design decisions</a><a data-page="research" href="../pages/research.html"><span>08</span>Research horizons</a><a data-page="build-log" href="../pages/build-log.html"><span>09</span>Build log</a><a data-page="journey" href="../pages/journey.html"><span>10</span>The journey</a></nav><div class="side-bottom"><div class="status"><i class="dot"></i>V0 · Evaluation frozen</div><p>Observe. Test. Understand.<br>Let evidence lead the next version.</p><span class="edition">RESEARCH SERIES / 001</span></div></aside><div class="menu-backdrop" hidden></div><main class="main" id="main"><div class="top"><button class="menu" aria-controls="site-navigation" aria-expanded="false" aria-label="Open navigation">☰ <span>Menu</span></button><span class="breadcrumb">The notebook <span>/</span> Understanding V0</span><span class="top-meta">MIRAGE <span>·</span> VERSION 0</span></div><div class="content"><header class="hero"><div class="kicker">Version 0 / The complete explanation</div><h1>Understanding V0</h1><p class="lead">The complete design story: what we predicted, how we investigated the data, why each model decision followed, and what the evidence actually supports.</p><div class="badges"><span class="badge ok">Development evaluation frozen</span><span class="badge">23 chapters</span><span class="badge">Full observer scope</span></div></header><div class="page-note">Read in order for the complete reasoning, or jump to a chapter. <a href="../assets/sources/v0_explained.md" download>Download the full guide ↓</a> · <a href="evidence.html">Open the evidence tables ↗</a></div><div class="reading-layout"><article class="article"><p>V0 is the first version of the CS2 Tactical Intelligence research project: an Early-Round Site Outcome Forecaster. It predicts the eventual recorded plant outcome of an eligible Mirage round from information available before the plant or round end. It returns three probabilities: A plant, B plant, and no plant.</p>
+<p>The important result is more than a winning model name. V0 established a way to investigate data, challenge assumptions, compare representations, evaluate uncertainty, and let observed failure modes shape the next question. This chapter explains that reasoning in order. Project-specific numbers come from the frozen local evaluation artifacts; explanatory examples are labeled as illustrations.</p>
+<section id="chapter-01"><span class="chapter-number">CHAPTER 01</span><h2>The question comes before the architecture</h2>
+<p>The long-term ambition is a system that can observe a match, recognize tactical behavior, forecast what happens next, retrieve similar historical situations, model an opponent, and eventually evaluate possible responses. Each of those capabilities asks a different question. A model that forecasts a plant site does not automatically recognize a fake, understand a team's intention, or know which counter-strategy would win.</p>
+<p>The early temptation was to build a generic GameState object immediately. The problem was that its fields would have reflected assumptions about both the data and the future model. The design therefore stepped back: first decide what must be predicted, inspect real source contracts, and only then decide which state representation is needed.</p>
+<p>An initial target such as “recognize an execute” creates a labeling problem. Two analysts may disagree about exactly when an execute begins or whether a round is a default, split, or fake. A recorded bomb plant provides a more objective starting point: there is an event, a time, and a site that can be audited. The no-plant class keeps rounds in which neither site receives a plant inside the task.</p>
+<p>This choice deliberately leaves tactical meaning incomplete. A team can initially intend to attack A and ultimately plant B. It can prepare a good attack and lose the duels before planting. V0 learns associations with the eventual outcome, not privileged knowledge of intent. Its first success criterion is whether pre-outcome state improves probabilistic forecasting beyond simple baselines.</p>
+<p>The work proceeds as a controlled chain:</p>
+<pre><code>Define the target → inspect sources → construct labels and observations
+→ validate features → compare models → analyze errors and uncertainty
+→ freeze the evidence → propose the next experiment</code></pre>
 </section>
+<section id="chapter-02"><span class="chapter-number">CHAPTER 02</span><h2>Exactly what one prediction means</h2>
+<p>The scope is Mirage, viewed through the attacking T side of each round. The input is full observer-derived state, including CT information where the selected feature set requires it. “T-side forecasting” describes the round's attacking outcome; it does not mean a normal T player could know every input.</p>
+<p>For state history available through observation time t, the target is:</p>
+<pre><code>P(Y | S[0:t]), where Y ∈ {A_PLANT, B_PLANT, NO_PLANT}
 
-
-<section>
-
-<h2>1. Why Start With Prediction?</h2>
-
-<p>
-The long-term system is intended to move through several levels:
-</p>
-
-<pre>
-OBSERVE
-↓
-UNDERSTAND
-↓
-PREDICT
-↓
-RETRIEVE
-↓
-OPPONENT MODEL
-↓
-EVALUATE
-↓
-RECOMMEND
-</pre>
-
-<p>
-Jumping directly to strategy recommendation would mix together
-several unsolved problems.
-V0 therefore freezes the first measurable prediction task.
-</p>
-
+Implemented V0: history → engineered feature vector x(t) → model → probabilities</code></pre>
+<p>The notation permits a history of observations. The implementation is a tabular model with current-state features plus a short movement summary. It is not a neural sequence model reading the entire round. That distinction matters when comparing V0 to future GRU or TCN candidates.</p>
+<p>An illustrative output is P(A) = 0.55, P(B) = 0.20, and P(NO) = 0.25. The three values sum to one. A is the most likely single class, but 45% of the probability remains on other outcomes. If the actual outcome is A, a model that assigned A 0.55 receives a different probability-quality score from one that assigned A 0.99, even though both classify the round as A.</p>
+<p>A plant label also does not describe the round winner. A T-side plant followed by a CT defuse is still a plant observation. Conversely, a round can end without a plant for different reasons. Those reasons are compressed into NO_PLANT rather than separately labeled in V0. That deliberately broad class will later become central to the error analysis.</p>
+<p>V0 does not currently generate tactical recommendations, infer concealed intentions, evaluate counterfactual actions, or provide demonstrated live predictions. It is a frozen offline research baseline for one precisely defined task.</p>
 </section>
+<section id="timing"><span class="chapter-number">CHAPTER 03</span><h2>Time, eligibility, and the information boundary</h2>
+<p>Four observation horizons were fixed: 10, 20, 30, and 40 seconds after freeze_end. Freeze end is the point after the pre-round freeze period. Starting the clock there makes the horizons describe playable round time rather than time spent waiting before the round starts.</p>
+<pre><code>target_tick = freeze_end + horizon_seconds × demo_tickrate
 
+Eligible only when:
+  target_tick &lt; round_end_tick
+  and (there is no plant event, or target_tick &lt; plant_tick)</code></pre>
+<p>The strict inequality is intentional. A snapshot at the plant event is already too late to forecast whether and where the plant will happen. Similarly, an ended round is not an ongoing early-round forecasting opportunity. Features must be constructed from state at or before the cutoff, never from a later convenient snapshot or future bomb position. The consolidated offline builder requires an exact player snapshot at the target tick and at the one-second lag tick; it raises an error if either is missing. It does not silently substitute a future snapshot.</p>
+<p>Consider an illustrative round that plants at 27 seconds and ends at 43 seconds. Its 10-second and 20-second observations are eligible. Its 30-second and 40-second observations are excluded because the plant has already happened. A different round ending without a plant at 18 seconds contributes only a 10-second observation. A round lasting beyond 40 seconds without a plant can contribute all four.</p>
+<p>The future event is allowed to define the training label. Supervised learning requires us to look back later and identify what happened. It is not allowed to define a predictor that would have been unknown at t. The distinction is between future information used as the answer and future information leaking into the question.</p>
+<p>There are two separate audits: within each observation, check the time boundary; across training and evaluation, check the match boundary. Passing one does not make the other unnecessary. Reconstructing the correct label is also a separate responsibility: an accurately timed feature cannot repair incorrect ground truth.</p>
+</section>
+<section id="chapter-04"><span class="chapter-number">CHAPTER 04</span><h2>The dataset and why its size needs context</h2>
+<p>The frozen development dataset contains 20 Mirage demos, 444 parsed rounds, and 443 rounds with valid timing. One partial opening round was excluded. These yield 1,268 eligible observations with zero missing feature values in the constructed dataset.</p>
+<div class="table-wrap" role="region" aria-label="The dataset and why its size needs context data table" tabindex="0"><table><thead><tr><th scope="col">Horizon after freeze end</th><th scope="col">Eligible observations</th><th scope="col">Share of all observations</th></tr></thead><tbody>
+<tr><td>10 seconds</td><td>442</td><td>34.9%</td></tr>
+<tr><td>20 seconds</td><td>373</td><td>29.4%</td></tr>
+<tr><td>30 seconds</td><td>270</td><td>21.3%</td></tr>
+<tr><td>40 seconds</td><td>183</td><td>14.4%</td></tr>
+<tr><td>Total</td><td>1,268</td><td>100%</td></tr>
+</tbody></table></div>
+<p>These are 1,268 snapshots, not 1,268 independent matches. Observations from the same round are related, and rounds from the same match share teams, opponents, and match conditions. More rows can help a model fit, but they do not automatically provide the same diversity as more independent matches.</p>
+<p>The overall label counts derived from the confusion matrix are 422 A_PLANT, 223 B_PLANT, and 623 NO_PLANT observations. The imbalance explains why a simplistic majority-class choice can achieve about 49.1% accuracy while doing poorly on the two site classes. It also explains why macro F1 and per-class recall are useful companions to overall accuracy.</p>
+<p>Later horizons contain a selected population: rounds that have survived without an earlier plant or round end. A better metric at 40 seconds may reflect additional information, a different set of rounds, or both. It cannot be interpreted as a causal improvement obtained by waiting on an identical cohort. An identical-cohort study would require a separately defined comparison.</p>
+<p>“No missing values” is a construction check, not proof that the data is free of semantic error. A field can be present, finite, and consistently wrong. That is exactly why the project inspected labels and bomb-state logic before treating the dataset as trustworthy.</p>
+</section>
+<section id="chapter-05"><span class="chapter-number">CHAPTER 05</span><h2>Two source investigations that changed the design</h2>
+<p>The first investigation concerned plant labels. The obvious shortcut was to trust the parser's round-level bomb_site field. In the initial demo audit, that field disagreed with the actual plant events, reporting B for planted rounds whose event identified A. This was a problem in the observed source path, not a reason to assume every parser version or every demo has the same failure.</p>
+<p>The resulting label policy uses bomb plant events directly: BombsiteA maps to A_PLANT; BombsiteB maps to B_PLANT; no recorded plant maps to NO_PLANT. This replaces an unverified convenience field with an auditable event-based derivation. The absence of a plant still depends on successful event parsing, so event completeness remains part of the source contract.</p>
+<p>The second investigation concerned current bomb position. “Use the latest bomb event” sounds sensible until a bomb is dropped and then picked up. The last drop coordinate can remain in the event history while the current carrier has already moved elsewhere. A stale bomb position would contaminate several spatial and motion features at once.</p>
+<p>The adopted policy prioritizes current inventory: if exactly one T currently carries C4, use that player's current position. Otherwise, reconstruct a dropped bomb from a valid prior drop event. The reconstruction has to respect the observation time and round. Ambiguous or absent evidence needs an audit path rather than an invented location.</p>
+<p>On the original 49 eligible observations, the bomb-state audit reported 35 carried, 14 dropped, and zero suspicious states. That is evidence that the implemented rule handled the audited observations; it is not a guarantee about every future demo or every exceptional game event.</p>
+<p>Both investigations teach the same engineering lesson: validate what a field means before optimizing a model that depends on it. Better machine learning cannot reliably compensate for mislabeled outcomes or a bomb position reconstructed from the wrong event.</p>
+</section>
+<section id="features"><span class="chapter-number">CHAPTER 06</span><h2>From raw state to a feature contract</h2>
+<p>Raw demo tables contain more fields than V0 needs. The model receives an explicit list, which prevents labels, identifiers, and convenient future-derived fields from entering accidentally. Match and round identifiers remain useful for joining, tracing, and splitting data; they are not automatically tactical predictors.</p>
+<p>The selected XGB-A5 model uses 37 inputs:</p>
+<div class="table-wrap" role="region" aria-label="From raw state to a feature contract data table" tabindex="0"><table><thead><tr><th scope="col">Family</th><th scope="col">Inputs</th><th scope="col">Purpose</th></tr></thead><tbody>
+<tr><td>Observation horizon</td><td>1</td><td>Identify whether this is the 10, 20, 30, or 40 second observation</td></tr>
+<tr><td>Offensive geometry</td><td>12</td><td>Describe T formation and bomb location</td></tr>
+<tr><td>Motion</td><td>4</td><td>Summarize movement over approximately one second</td></tr>
+<tr><td>Combat</td><td>9</td><td>Describe surviving players, health, and armor on both sides</td></tr>
+<tr><td>Defense and interaction</td><td>11</td><td>Describe CT formation and T–CT spatial relationships</td></tr>
+<tr><td>Total selected</td><td>37</td><td>XGB-A5 feature contract</td></tr>
+<tr><td>Economy, tested separately</td><td>3</td><td>Current equipment-value totals and difference; excluded from A5</td></tr>
+</tbody></table></div>
+<p>The family names describe information, while the A0–A5 labels describe experiments. A1 includes horizon plus offensive geometry. A2 adds motion. A3 adds combat. A4 tests economy on top of A3. A5 tests defense on top of A3, not on top of A4. This branching structure is essential for interpreting the experiments.</p>
+<p>The longer-term architecture keeps raw-source adapters outside a shared representation and feature builder. Historical demos, replay, and an observer-compatible live source should ultimately produce equivalent feature meanings. In V0, position-derived movement was chosen partly because it can be reconstructed from position history instead of depending on a parser-specific velocity field. This is a design for future parity, not evidence that the live adapter already achieves it.</p>
+</section>
+<section id="chapter-07"><span class="chapter-number">CHAPTER 07</span><h2>Geometry: where the team is and what shape it makes</h2>
+<p>A team centroid averages alive-player coordinates. It represents an approximate center, but two radically different formations can share it. In an illustrative one-dimensional example, players at positions −10 and +10 have the same center as players at −1 and +1. The first pair is much more spread out. The model therefore needs more than an average position.</p>
+<p>The offensive family contains T centroid x/y/z, mean XY distance to that centroid (stretch), x and y ranges, mean pairwise XY distance, and convex hull area. It also contains bomb x/y/z and bomb-to-T-centroid distance. Together these describe approximate location, dispersion, extent, and whether the bomb is traveling with the formation.</p>
+<pre><code>centroid = average of alive-player coordinates
+stretch = average XY distance from each alive player to the centroid
+range_x = largest x − smallest x
+pairwise distance = average XY distance across unique player pairs
+hull area = area inside the outer polygon of alive-player XY positions</code></pre>
+<p>The convex hull is a geometric envelope, not literal controlled territory. It can cross walls or include areas no player can see. Euclidean distance also is not navigable route distance, firing-line visibility, or rotation time. These are inexpensive, reproducible descriptors whose tactical relevance must be tested rather than assumed.</p>
+<p>A useful debugging surprise was zero spread or area. A single surviving player has zero pairwise spread, and fewer than three non-collinear players cannot form a positive-area polygon. The audited zero-spread observations had only one T alive. The arithmetic was valid; the interpretation “a tightly coordinated team” would have been wrong. Geometry needed survival context.</p>
+<p>The geometry ablation reduced log loss from 1.0240 for the class prior to 0.9161 for logistic A1. This establishes predictive value in the development comparison. It does not show that every individual geometry column is independently useful or that the representation is optimal.</p>
+</section>
+<section id="chapter-08"><span class="chapter-number">CHAPTER 08</span><h2>Motion, combat, economy, and defense</h2>
+<p>Motion adds four inputs: average T speed over the one-second window, T centroid x/y velocity over that window, and bomb speed. Movement direction can distinguish similarly located groups that are approaching or leaving an area. The builder matches currently alive T players to their previous positions by identity and checks that the required prior states are present. Using the same player identities at both times prevents a casualty alone from appearing as centroid movement.</p>
+<p>The motion addition was a weak overall positive in the linear model: log loss moved from 0.9161 to 0.9119. That small aggregate difference and horizon variation support cautious interpretation. V0 does not establish that a long sequence model would add value merely because a short movement summary helped a little.</p>
+<p>Combat adds T and CT alive counts plus their difference, health sums plus their difference, and armor sums plus their difference. These nine variables explain whether a spatial pattern belongs to five healthy attackers or one damaged survivor. They also provide context for whether an attempted site approach is likely to survive long enough to produce a plant.</p>
+<p>Combat was the strongest incremental linear addition: log loss improved from 0.9119 to 0.8359, with improvement at every evaluated horizon. CT health and armor are already used here. Full-observer requirements therefore begin before the explicit defense family is added.</p>
+<p>Economy tests the sum of current equipment values for each side and their difference. It is a reasonable hypothesis that remaining equipment captures combat capability. It is not the same as a complete buy-round model, original purchase value, or future spending power. Adding these columns worsened logistic log loss to 0.8509 and XGBoost log loss from 0.8157 to 0.8274. The selected V0 excludes them.</p>
+<p>Defense adds CT centroid x/y/z, stretch, x/y ranges, pairwise distance, hull area, T–CT centroid distance, minimum opponent distance, and mean nearest-opponent distance. These extend the question from “where are the attackers?” to “how do the two formations relate?” They still do not encode exact sight lines, utility effects, or tactical semantics.</p>
+<p>Defense produced a particularly informative disagreement. Logistic A5 improved classification metrics relative to A3 but worsened log loss and Brier. XGBoost A5 improved the probability metrics. This motivated the interpretation that some defensive information may require nonlinear interactions, while leaving the precise causal mechanism unproven.</p>
+</section>
+<section id="chapter-09"><span class="chapter-number">CHAPTER 09</span><h2>Why sanity checks precede predictive evaluation</h2>
+<p>Feature validation had two layers. Numerical checks looked for missing or invalid values, negative quantities that should be non-negative, and implausible scales. Tactical checks followed observations through an actual round to see whether changing features matched the visible development of formations, movement, survival, and bomb state.</p>
+<p>In the original 49-observation feature audit, geometry expanded during the middle of the round and contracted as attackers converged toward the eventual A plant. Movement summaries reflected periods of faster movement and slower positioning. Combat state explained the apparently suspicious zero-spread cases. T–CT centroid distance decreased as formations converged.</p>
+<p>Those are construction checks. They make it more plausible that the feature pipeline represents what its names claim, but they cannot establish generalizable prediction. A perfectly implemented equipment feature can still fail ablation. Conversely, a model might appear strong because an incorrectly constructed feature leaks an outcome. Both correctness and predictive evaluation are needed.</p>
+<p>The ordering matters: investigate suspicious features before celebrating a score. Otherwise an improvement can become a reason to defend a broken representation. This project keeps “implemented correctly,” “tactically interpretable,” and “useful on held-out matches” as different evidence statements.</p>
+</section>
+<section id="evaluation"><span class="chapter-number">CHAPTER 10</span><h2>Match-grouped evaluation and out-of-fold predictions</h2>
+<p>Randomly splitting observation rows is too permissive here. A 10-second observation from a round could enter training while that same round's 20-second observation enters testing. Splitting only by round avoids that particular overlap but still shares match-specific conditions between training and testing.</p>
+<p>V0 groups observations by demo_filename and uses five StratifiedGroupKFold folds with random_state 42. Stratification seeks a reasonable class distribution while the grouping constraint keeps an entire demo in one fold. Each fit trains on the other folds and predicts only the held-out fold. The code asserts that train and test match groups do not overlap.</p>
+<pre><code>For each frozen fold:
+  fit preprocessing and model using training matches only
+  predict the held-out matches
+  store predictions with observation keys and fold identity
 
-<section>
-
-<h2>2. Frozen V0 Task</h2>
-
-<p>
-For an eligible T-side Mirage round, observe the game state at:
-</p>
-
+Combine held-out predictions → out-of-fold (OOF) evaluation</code></pre>
+<p>The scaler for logistic regression is inside the training pipeline. It learns means and scales from the training portion of each fold, preventing information from the held-out feature distribution from entering preprocessing. The probability columns are explicitly aligned to A_PLANT, B_PLANT, NO_PLANT so that a label-order mismatch cannot silently corrupt metrics.</p>
+<p>Later model comparisons reuse the frozen A1 fold assignments. This makes changes paired: competing models see the same held-out matches and observations. A gain is less likely to be an artifact of an easier split. The class-prior baseline also estimates its probabilities from training labels, rather than borrowing the full dataset's label distribution.</p>
+<p>OOF predictions are held out from the fit that produced them. They are nevertheless development evidence once repeated model and feature choices are made after inspecting them. Match separation does not make the same 20 matches an untouched final test, nor does it guarantee that teams, competitions, or playing styles never recur across folds.</p>
+</section>
+<section id="chapter-11"><span class="chapter-number">CHAPTER 11</span><h2>Metrics: why a correct class is not enough</h2>
+<p>V0 is a probability forecaster. Log loss and Brier score are therefore primary numerical metrics, with calibration inspection alongside them. Accuracy, macro F1, and class-specific recall explain classification behavior but do not replace probability assessment.</p>
+<p>Log loss is the average negative natural logarithm of the probability assigned to the true class. It strongly penalizes confidently wrong forecasts. In an illustrative A-plant example, assigning A probability 0.8 gives loss −ln(0.8) ≈ 0.223; assigning A 0.2 gives ≈ 1.609. Smaller is better. See the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.log_loss.html">scikit-learn log-loss definition</a>.</p>
+<p>The project's multiclass Brier implementation averages the sum of squared errors across all three probability columns. It is not divided by the number of classes. For probabilities (0.55, 0.20, 0.25) and a true A label (1, 0, 0), the illustrative per-observation score is 0.2025 + 0.0400 + 0.0625 = 0.3050. The multiclass convention used here ranges from 0 to 2; lower is better.</p>
+<pre><code>Log loss = average[−ln(probability assigned to the true class)]
+Brier = average[sum over classes (predicted probability − one-hot truth)²]
+Accuracy = fraction whose largest-probability class is correct</code></pre>
+<p>Accuracy ignores how probability is distributed away from the largest class. Macro F1 computes an F1 score for each class and averages those scores equally, giving the smaller B class a visible role. Recall for A asks what fraction of true A observations the classifier identifies as A; it is different from the probability that an A prediction is correct.</p>
+<p>Calibration asks whether stated confidence agrees with empirical frequency across groups of predictions. A model's 70% claims should succeed roughly 70% of the time in an appropriate evaluation population. Good ranking, high accuracy, and calibration are related but distinct properties. A relatively small overall calibration error can conceal a troublesome confidence range or horizon.</p>
+</section>
+<section id="chapter-12"><span class="chapter-number">CHAPTER 12</span><h2>The linear baseline and the ablation logic</h2>
+<p>A class prior asks whether any state information is necessary to beat knowledge of training-set outcome frequencies. Logistic regression then gives a regularized, comparatively simple model for testing the engineered representation. For each class it learns a score from weighted features; softmax converts the three scores into probabilities.</p>
+<pre><code>score(class k) = intercept_k + sum_j weight[k,j] × standardized_feature[j]
+P(class k) = exp(score_k) / sum_c exp(score_c)</code></pre>
+<p>The scores are linear in the selected inputs. The final probabilities are nonlinear through softmax, but this does not automatically provide arbitrary interactions between raw input features. For example, a bomb coordinate does not get a separately learned effect for every possible CT formation unless the representation or model supplies that interaction.</p>
+<div class="table-wrap" role="region" aria-label="The linear baseline and the ablation logic data table" tabindex="0"><table><thead><tr><th scope="col">Stage</th><th scope="col">Information set</th><th scope="col">Log loss ↓</th><th scope="col">Brier ↓</th><th scope="col">Accuracy ↑</th><th scope="col">Macro F1 ↑</th></tr></thead><tbody>
+<tr><td>A0</td><td>Training class prior</td><td>1.0240</td><td>0.6186</td><td>0.4913</td><td>0.2196</td></tr>
+<tr><td>A1</td><td>Horizon + offensive geometry</td><td>0.9161</td><td>0.5675</td><td>0.5142</td><td>0.4628</td></tr>
+<tr><td>A2</td><td>A1 + motion</td><td>0.9119</td><td>0.5612</td><td>0.5347</td><td>0.4823</td></tr>
+<tr><td>A3</td><td>A2 + combat</td><td>0.8359</td><td>0.4939</td><td>0.5994</td><td>0.5541</td></tr>
+<tr><td>A4</td><td>A3 + economy</td><td>0.8509</td><td>0.5011</td><td>0.5986</td><td>0.5495</td></tr>
+<tr><td>A5</td><td>A3 + defense, no economy</td><td>0.8408</td><td>0.4954</td><td>0.6151</td><td>0.5687</td></tr>
+</tbody></table></div>
+<p>This is an information experiment as much as a model contest. Geometry earns a place, motion provides a small positive, and combat makes another substantial contribution. Economy is not retained simply because its hypothesis sounds sensible. Defense creates a question because classification improves while the primary probability metrics become slightly worse.</p>
+<p>The model ladder originally included a geometry heuristic and later sequence models as possibilities. The frozen quantitative comparison here contains the class prior, logistic stages, and XGBoost variants. The website does not attach measured results to candidates that were only proposed.</p>
+</section>
+<section id="xgboost"><span class="chapter-number">CHAPTER 13</span><h2>Why XGBoost was the next experiment</h2>
+<p>The mixed defense result suggested a concrete follow-up: hold the task, observations, folds, and feature families fixed, but use a model that can express feature interactions. The data is tabular and relatively small. A boosted-tree baseline tests that hypothesis before introducing a much larger sequence-modeling problem.</p>
+<p>A decision tree partitions inputs through threshold questions. An illustrative branch might first ask about bomb position, then about opposing formation distance, then about surviving T count. The effect of one variable can depend on which previous questions were answered. This is how a tree can represent conditional structure. Those example questions are not an extracted explanation of the fitted V0 trees.</p>
+<p>One shallow tree offers limited flexibility. Boosting builds an additive ensemble: each new stage changes the current prediction scores in a direction intended to reduce the training objective. It is more precise to describe this as fitting loss derivatives than to say that each tree merely memorizes previously misclassified rows. XGBoost also uses regularization to constrain tree complexity and leaf weights.</p>
+<p>V0 uses the multiclass soft-probability objective so the model returns all three class probabilities. The fixed configuration has 300 boosting rounds and maximum depth 3. In the usual one-tree-per-class multiclass strategy, 300 rounds should not be described as only 300 total individual trees; each round can add a tree for each class.</p>
+<p>The reason to use XGBoost is therefore testable: can a conservative nonlinear tabular model extract useful structure that the linear baseline did not? The claim is not that a more sophisticated algorithm must win. Its place is earned only by the controlled comparison.</p>
+</section>
+<section id="chapter-14"><span class="chapter-number">CHAPTER 14</span><h2>The exact XGBoost configuration and its tradeoffs</h2>
+<p>The local evaluation script fixes the configuration rather than running a large hyperparameter search over the same OOF results.</p>
+<div class="table-wrap" role="region" aria-label="The exact XGBoost configuration and its tradeoffs data table" tabindex="0"><table><thead><tr><th scope="col">Setting</th><th scope="col">V0 value</th><th scope="col">Role in this experiment</th></tr></thead><tbody>
+<tr><td>n_estimators</td><td>300</td><td>Number of boosting rounds</td></tr>
+<tr><td>max_depth</td><td>3</td><td>Restrict the depth and complexity of individual trees</td></tr>
+<tr><td>learning_rate</td><td>0.03</td><td>Shrink each boosting update</td></tr>
+<tr><td>min_child_weight</td><td>5</td><td>Require sufficient Hessian weight before a child split; not a literal five-player or five-row threshold</td></tr>
+<tr><td>subsample</td><td>0.8</td><td>Sample training observations for tree construction</td></tr>
+<tr><td>colsample_bytree</td><td>0.8</td><td>Sample feature columns per tree</td></tr>
+<tr><td>reg_alpha</td><td>0.5</td><td>L1 penalty on leaf weights</td></tr>
+<tr><td>reg_lambda</td><td>5.0</td><td>L2 penalty on leaf weights</td></tr>
+<tr><td>objective / num_class</td><td>multi:softprob / 3</td><td>Predict three-class probability vectors</td></tr>
+<tr><td>eval_metric</td><td>mlogloss</td><td>Multiclass log-loss evaluation setting</td></tr>
+<tr><td>tree_method</td><td>hist</td><td>Histogram-based split construction</td></tr>
+<tr><td>random_state</td><td>42</td><td>Fixed pseudorandom seed</td></tr>
+<tr><td>n_jobs</td><td>−1</td><td>Use available CPU threads</td></tr>
+</tbody></table></div>
+<p>Depth, shrinkage, sampling, and penalties all influence flexibility, but these choices are not proof of optimal regularization. A fixed seed aids reproducibility within the recorded environment; it does not remove statistical uncertainty or promise bit-for-bit identity across every future library and platform.</p>
+<p>The parameter meanings are documented in the <a href="https://xgboost.readthedocs.io/en/latest/parameter.html">official XGBoost parameter reference</a>. The exact values above come from this project's evaluation script, not from a general recommendation in that reference.</p>
+<p>The lack of a large search matters because there are only 20 matches. Repeatedly inspecting OOF scores, changing parameters, and selecting the best result can gradually tune to the evaluation set. A conservative initial configuration limits one source of that pressure. Feature and model selection still make this development evaluation, so the result requires fresh confirmation.</p>
+</section>
+<section id="chapter-15"><span class="chapter-number">CHAPTER 15</span><h2>What the nonlinear comparison actually found</h2>
+<div class="table-wrap" role="region" aria-label="What the nonlinear comparison actually found data table" tabindex="0"><table><thead><tr><th scope="col">Model</th><th scope="col">Inputs</th><th scope="col">Log loss ↓</th><th scope="col">Brier ↓</th><th scope="col">Accuracy ↑</th><th scope="col">Macro F1 ↑</th></tr></thead><tbody>
+<tr><td>Logistic A3</td><td>26</td><td>0.8359</td><td>0.4939</td><td>0.5994</td><td>0.5541</td></tr>
+<tr><td>XGB-A3</td><td>26</td><td>0.8157</td><td>0.4880</td><td>0.6167</td><td>0.5876</td></tr>
+<tr><td>XGB-A4</td><td>29</td><td>0.8274</td><td>0.4958</td><td>0.6080</td><td>0.5786</td></tr>
+<tr class="best"><td>XGB-A5</td><td>37</td><td>0.8024</td><td>0.4785</td><td>0.6285</td><td>0.5996</td></tr>
+</tbody></table></div>
+<p>The A3-to-A3 comparison isolates the change in model family while keeping the information set fixed. XGBoost improves log loss from 0.8359 to 0.8157. The XGB-A3-to-XGB-A5 comparison then isolates adding defense within the nonlinear model, improving log loss to 0.8024. Defense improved XGBoost at every tested horizon in the frozen analysis.</p>
+<p>XGB-A4 worsens probability quality relative to XGB-A3, so the economy hypothesis did not recover under this nonlinear baseline. XGB-A5 branches from A3 and excludes economy. Describing A5 as “all available features” would misrepresent the experiment.</p>
+<p>The frozen selection is XGB-A5: the best development baseline among these comparisons, with offensive geometry, motion, combat, defense, and horizon. This supports the hypothesis that defensive information contains useful nonlinear or interaction-dependent structure. It does not identify a causal defensive mechanism, prove every defense column is necessary, or establish superiority on all unseen populations.</p>
+</section>
+<section id="calibration"><span class="chapter-number">CHAPTER 16</span><h2>Calibration: useful confidence with a visible weak spot</h2>
+<p>Top-label calibration compares the model's maximum probability with whether its chosen class was correct. The analysis uses confidence bins and a count-weighted expected calibration error (ECE). XGB-A5's overall top-label ECE is 0.0454, with classwise ECE of 0.0565 for A, 0.0354 for B, and 0.0432 for no plant.</p>
+<p>The average hides a clear weakness: in the 0.6–0.7 confidence bin, 225 observations had mean confidence about 0.646 but observed accuracy about 0.524. That is an approximately 12.2 percentage-point overconfidence gap. The 30-second horizon also has the largest top-label ECE, about 0.0853.</p>
+<div class="table-wrap" role="region" aria-label="Calibration: useful confidence with a visible weak spot data table" tabindex="0"><table><thead><tr><th scope="col">Minimum model confidence</th><th scope="col">Accuracy among selected predictions</th></tr></thead><tbody>
+<tr><td>At least 0.50</td><td>66.8%</td></tr>
+<tr><td>At least 0.60</td><td>72.7%</td></tr>
+<tr><td>At least 0.70</td><td>81.2%</td></tr>
+<tr><td>At least 0.80</td><td>88.6%</td></tr>
+<tr><td>At least 0.90</td><td>94.9%</td></tr>
+</tbody></table></div>
+<p>These are nested, selected subsets. “94.9% accurate at confidence ≥0.90” describes 157 high-confidence observations, not the entire 1,268-observation dataset. Raising a threshold changes coverage, and the retained situations may be systematically easier. A deployable abstention or alerting policy would need explicit coverage, operating costs, and fresh-data validation.</p>
+<p>No post-hoc calibration method is demonstrated by these numbers. This is an assessment of the baseline's probability behavior. ECE depends on binning and sample composition and is not a universal probability guarantee. The evidence supports inspecting confidence, not presenting all displayed probabilities as deployment-calibrated truth.</p>
+</section>
+<section id="errors"><span class="chapter-number">CHAPTER 17</span><h2>Error structure: the main failure is not an A/B swap</h2>
+<p>The confusion matrix records true labels in rows and predicted labels in columns. It contains observations, not unique rounds or matches.</p>
+<div class="table-wrap" role="region" aria-label="Error structure: the main failure is not an A/B swap data table" tabindex="0"><table><thead><tr><th scope="col">True outcome → predicted outcome</th><th scope="col">A_PLANT</th><th scope="col">B_PLANT</th><th scope="col">NO_PLANT</th></tr></thead><tbody>
+<tr><td>A_PLANT</td><td>241</td><td>32</td><td>149</td></tr>
+<tr><td>B_PLANT</td><td>35</td><td>107</td><td>81</td></tr>
+<tr><td>NO_PLANT</td><td>130</td><td>44</td><td>449</td></tr>
+</tbody></table></div>
+<p>The diagonal contains 797 correct predictions; the off-diagonal contains 471 errors. Direct site swaps are 32 + 35 = 67. Plant/no-plant boundary errors are 149 + 81 + 130 + 44 = 404. Therefore, 404 / 471 = 85.8% of classification errors cross the plant-occurrence boundary, while 14.2% directly confuse A with B.</p>
+<p>Per-class recall is 57.11% for A, 47.98% for B, and 72.07% for no plant. The lower B recall is important even though B is the smallest class. Overall accuracy by itself would obscure that weakness.</p>
+<p>This error grouping changes the next research question. It suggests that predicting whether a plant will happen is a larger difficulty than choosing the site once a plant is known to occur. That is an observed structure in V0's failures, not a proof that a particular replacement architecture must improve them.</p>
+</section>
+<section id="chapter-18"><span class="chapter-number">CHAPTER 18</span><h2>Decomposing the task without training a new model</h2>
+<p>The hierarchical analysis reuses the existing three-class probabilities. It first combines A and B to obtain plant probability, then renormalizes A and B for conditional site choice.</p>
+<pre><code>P(plant) = P(A) + P(B)
+P(A | plant) = P(A) / [P(A) + P(B)]
+P(B | plant) = P(B) / [P(A) + P(B)]</code></pre>
+<p>The plant-versus-no-plant diagnostic has log loss 0.5740, binary Brier 0.1978, accuracy 0.6909, and F1 0.7066. The A/B diagnostic is evaluated only on the 645 observations whose true label is a plant; its accuracy is 0.7845 and log loss 0.4490. This conditioning uses true outcomes for analysis, not information available to an online predictor.</p>
+<p>The 78.45% conditional site accuracy is not the original model's overall accuracy. It excludes all true no-plant observations and asks a different question. Likewise, binary Brier values use a different scoring expression from the three-class summed Brier above and should not be compared as if they measured the same task on the same scale.</p>
+<p>Conditional site accuracy is 76.5%, 77.4%, 80.5%, and 83.0% across 10, 20, 30, and 40 seconds. The shrinking eligible populations still apply. These values do not establish a within-round causal improvement from waiting.</p>
+<p>This decomposition is diagnostic. No separately trained hierarchical model is being evaluated here. It exposes where the present three-class model's information is useful and where its task may benefit from a more focused treatment.</p>
+</section>
+<section id="chapter-19"><span class="chapter-number">CHAPTER 19</span><h2>What permutation importance does and does not explain</h2>
+<p>The group permutation experiment fits the same fold models, then disrupts one feature family in held-out observations while keeping the fitted models fixed. All columns within that family receive the same row permutation. This preserves relationships inside the shuffled family while breaking its alignment with the original outcome and other feature groups.</p>
+<p>The experiment repeats 20 times, permuting within each held-out fold. The reported value is the change in pooled OOF loss relative to the unpermuted baseline. Positive change means destroying that information made the model worse.</p>
+<div class="table-wrap" role="region" aria-label="What permutation importance does and does not explain data table" tabindex="0"><table><thead><tr><th scope="col">Shuffled family</th><th scope="col">Change in three-class log loss</th></tr></thead><tbody>
+<tr><td>Offensive geometry</td><td>+0.2806</td></tr>
+<tr><td>Combat</td><td>+0.2315</td></tr>
+<tr><td>Defense</td><td>+0.0274</td></tr>
+<tr><td>Motion</td><td>+0.0112</td></tr>
+<tr><td>Horizon</td><td>−0.0002</td></tr>
+</tbody></table></div>
+<p>These numbers are not percentages, do not sum to 100%, and should not be added into a total contribution. Correlation and redundancy mean that one family can substitute for another. Shuffling can also create combinations unlike real game states, so the result describes sensitivity of this fitted predictor to that perturbation, not a causal effect of moving players or changing health.</p>
+<p>Task-specific importance sharpens the interpretation. For plant versus no plant, shuffling combat increases log loss by 0.2287, compared with 0.0287 for offensive geometry. For A versus B given a true plant, shuffling offensive geometry increases log loss by 0.4953, compared with 0.0056 for combat. This supports the separation between plant feasibility and site choice.</p>
+<p>The near-zero horizon permutation result does not prove that time is irrelevant to Counter-Strike. Other state features can encode progression indirectly, and the explicit horizon may add little once those are known in this model and dataset. Retaining a frozen contract and testing a targeted simplification on fresh evidence are separate decisions.</p>
+</section>
+<section id="uncertainty"><span class="chapter-number">CHAPTER 20</span><h2>Robustness, uncertainty, and the decision to freeze</h2>
+<p>An aggregate score can improve because of a few unusually favorable matches. The robustness analysis therefore compares XGB-A5 with Logistic-A3 separately for each held-out match. XGB-A5 wins on log loss for 13 of 20 matches and on Brier for 13 of 20. Seven matches still regress on each metric.</p>
+<p>The equal-match mean log-loss delta is −0.0401 and the median is −0.0285, where delta means XGB-A5 minus Logistic-A3. The negative median shows that the improvement is not explained solely by one exceptionally favorable match. It does not remove the practical significance of the regressions.</p>
+<p>There are two different averages here. The headline pooled observation-level difference is approximately 0.8024 − 0.8359 = −0.0336. The robustness mean is −0.0401 because it averages match deltas equally instead of giving matches with more eligible observations greater weight. Both are valid summaries of different estimands.</p>
+<p>A paired match-level bootstrap resamples the 20 match comparisons with replacement 100,000 times. Each resample preserves the model comparison within a match and averages the selected match deltas. The 2.5th and 97.5th percentiles provide the reported interval.</p>
+<div class="table-wrap" role="region" aria-label="Robustness, uncertainty, and the decision to freeze data table" tabindex="0"><table><thead><tr><th scope="col">Metric</th><th scope="col">Mean match delta</th><th scope="col">95% bootstrap interval</th><th scope="col">Resamples with delta below zero</th></tr></thead><tbody>
+<tr><td>Log loss</td><td>−0.0401</td><td>[−0.0844, −0.0034]</td><td>0.9855</td></tr>
+<tr><td>Brier</td><td>−0.0160</td><td>[−0.0355, +0.0024]</td><td>0.9550</td></tr>
+</tbody></table></div>
+<p>The log-loss interval remains below zero, so its directional evidence is stronger in this analysis. The Brier interval crosses zero. The bootstrap fractions are empirical resampling summaries, not posterior probabilities that the model is universally better and not final confirmatory significance tests after selection.</p>
+<p>Twenty matches remain a small development sample, potentially with recurring teams and shared competitive context. Bootstrapping that sample does not create genuinely new matches, eliminate selection effects, or solve distribution shift. V0 freezes the evaluation so future work cannot repeatedly optimize these results and later present them as an unbiased final test.</p>
+</section>
+<section id="limitations"><span class="chapter-number">CHAPTER 21</span><h2>Limitations and the honest completion boundary</h2>
+<p>V0's offline feature construction, baseline comparisons, and development analyses have recorded results. That is the completion claim. The broader tactical intelligence system is not complete.</p>
+<p>The main boundaries are:</p>
 <ul>
-  <li>10 seconds after freeze_end</li>
-  <li>20 seconds</li>
-  <li>30 seconds</li>
-  <li>40 seconds</li>
+<li>One map and a limited match population. Generalization to other maps, levels of play, teams, or future game changes is not established.</li>
+<li>Correlated observations. The dataset has 20 match groups, not 1,268 independent tactical experiments.</li>
+<li>Full observer inputs. CT location, health, armor, and survival features are not all normal player-view information. A partial-observation model needs a different contract and evaluation.</li>
+<li>Outcome rather than intention. The labels identify recorded plant outcomes, not tactical plans, round winners, or the quality of a chosen strategy.</li>
+<li>Simplified representation. Euclidean formations do not capture sight lines, map navigation, utility semantics, communication, or every relevant tactical interaction.</li>
+<li>Development selection. Feature and model choices used the same OOF evidence. There is no untouched final-test result in the frozen summary.</li>
+<li>Imperfect calibration and class performance. Mid-confidence overconfidence, 30-second calibration weakness, and lower B recall remain visible.</li>
+<li>Serving work remains. No demonstrated online latency, replay parity, observer-feed parity, production monitoring, or deployable model service follows from the offline scores.</li>
 </ul>
-
-<p>
-Predict:
-</p>
-
-<pre>
-P(A_PLANT)
-P(B_PLANT)
-P(NO_PLANT)
-</pre>
-
-<p>
-An observation is excluded if the bomb has already been planted
-or the round has already ended.
-This prevents the model from seeing information that occurs after
-the event it is supposed to predict.
-</p>
-
+<p>The website documents these findings. Its deployment is a publication of the research record, not a deployment of the prediction model. There is no simulated live predictor masquerading as an operational system.</p>
 </section>
+<section id="v1"><span class="chapter-number">CHAPTER 22</span><h2>The V1 hypothesis and what would count as evidence</h2>
+<p>V0's errors and importance analysis motivate a candidate two-stage architecture: one model estimates plant feasibility; a second estimates site choice conditional on a plant. A possible probability composition would be:</p>
+<pre><code>q = predicted P(plant)
+r = predicted P(A | plant)
 
-
-<section>
-
-<h2>3. Why Match-Level Cross Validation?</h2>
-
-<p>
-Each round can generate several observations.
-For example, the same round may appear at 10s, 20s, 30s and 40s.
-</p>
-
-<p>
-A random observation split could therefore place part of one round
-in training and another part of the same round in testing.
-</p>
-
-<p>
-Even a round-level split can leak team and match-specific tactical
-patterns across rounds.
-</p>
-
-<p>
-V0 therefore groups the entire demo file as one unit:
-</p>
-
-<pre>
-Group = demo_filename
-
-One match
-→ entirely TRAIN
-or
-→ entirely TEST
-</pre>
-
-<p>
-All model comparisons reuse the same frozen five grouped folds.
-This makes ablation comparisons paired and interpretable.
-</p>
-
+P(A) = q × r
+P(B) = q × (1 − r)
+P(NO_PLANT) = 1 − q</code></pre>
+<p>This is a V1 hypothesis, not an implemented improvement. The diagnostic decomposition of V0 does not prove that separately training two models will perform better. Separate stages can introduce their own estimation errors, and selecting a conditional training population requires care. The original three-class XGB-A5 remains the comparison baseline.</p>
+<p>A useful next experiment would freeze the new hypothesis and evaluation plan, obtain untouched matches or use an appropriate nested design, compare probability metrics under the same observation contract, inspect calibration and per-class outcomes, and revisit match-level robustness. The proposed architecture should improve the actual three-class forecasting task, not only a conditional metric that excludes hard examples.</p>
+<p>Replay and serving parity are another clear engineering direction. Historical states should pass through the same feature and inference path intended for online use, with explicit timing, missingness, and latency checks. These are related to the eventual product, but they should not be confused with evidence that the hierarchical model is better.</p>
+<p>Longer-term ideas such as opponent modeling, historical retrieval, tactical concepts, transcript-assisted labeling, utility knowledge, and counter-strategy evaluation remain distinct research tracks. V0's contribution is a defensible starting point and a disciplined way to decide what deserves investigation next.</p>
 </section>
-
-
-<section>
-
-<h2>4. Dataset</h2>
-
+<section id="sources"><span class="chapter-number">CHAPTER 23</span><h2>Source map and a practical reading path</h2>
+<p>For the fastest understanding, read the task and time boundary first, then the ablation tables, error structure, and limitations. For the design story, follow the chapters in order: every model change makes more sense after the source investigations and feature checks that motivated it.</p>
+<p>The local research record provides several evidence levels:</p>
 <ul>
-  <li>20 Mirage demos</li>
-  <li>444 parsed rounds</li>
-  <li>443 valid-timing rounds</li>
-  <li>1 partial opening round excluded</li>
-  <li>1,268 eligible observations</li>
-  <li>0 missing feature values</li>
+<li><code>docs/v0_evaluation_summary.md</code>: frozen task, result interpretation, calibration, robustness, uncertainty, and the V1 hypothesis.</li>
+<li><code>docs/v0_feature_candidate_matrix.md</code>: candidate representations and their original rationale. A candidate or “ready for ablation” label is not a final keep decision.</li>
+<li><code>docs/v0_feature_evidence.md</code>: the initial 49-observation construction and tactical checks, which precede predictive evaluation.</li>
+<li><code>src/cs2_tactical_intelligence/v0/features.py</code>: consolidated feature construction used by the batch dataset builder.</li>
+<li><code>scripts/build_v0_dataset.py</code>, <code>scripts/evaluate_v0_a1.py</code>, <code>scripts/evaluate_v0_stage.py</code>, and <code>scripts/evaluate_v0_xgboost.py</code>: dataset orchestration, grouped evaluation, feature contracts, and fixed model settings.</li>
+<li><code>scripts/analyze_v0_*.py</code>: calibration, confusion, hierarchical diagnostics, permutation sensitivity, match robustness, and bootstrap analysis.</li>
+<li>Frozen CSV tables on the <a href="evidence.html">results and evidence page</a>: the numerical record used in this explanation.</li>
 </ul>
-
-<p>
-Observation counts:
-</p>
-
-<pre>
-10s → 442
-20s → 373
-30s → 270
-40s → 183
-</pre>
-
-<p>
-Later horizons contain fewer observations because rounds that
-already planted or ended are no longer eligible.
-Therefore cross-horizon performance is not a comparison over an
-identical cohort.
-</p>
-
-</section>
-
-
-<section>
-
-<h2>5. Data Validation Changed the Design</h2>
-
-<h3>Bomb-site label audit</h3>
-
-<p>
-The obvious implementation was to use the round-level bomb_site
-field from the parser.
-</p>
-
-<p>
-Manual validation showed that this field was incorrect for the
-initial demo.
-Planted rounds were being reported as B even when the actual plant
-event occurred at A.
-</p>
-
-<p>
-V0 therefore reconstructs the label from bomb plant events:
-</p>
-
-<pre>
-BombsiteA → A_PLANT
-BombsiteB → B_PLANT
-No plant → NO_PLANT
-</pre>
-
-<p>
-This became an important project rule:
-upstream parser fields are not automatically treated as ground truth.
-</p>
-
-
-<h3>Bomb-state reconstruction</h3>
-
-<p>
-A second issue was determining the current bomb position.
-Using only the latest bomb event fails when the bomb has been dropped
-and subsequently picked up.
-</p>
-
-<p>
-The final policy became:
-</p>
-
-<pre>
-If exactly one T currently carries C4:
-    use the current carrier position
-else:
-    use the latest valid bomb-drop event
-</pre>
-
-<p>
-Validation on the original 49 observations produced:
-</p>
-
-<pre>
-35 carried
-14 dropped
-0 suspicious
-</pre>
-
-</section>
-
-
-<section>
-
-<h2>6. Feature Design</h2>
-
-<p>
-Features were not selected by blindly exposing every parser column.
-Each family started from a tactical question.
-</p>
-
-
-<h3>A1 — Offensive Geometry</h3>
-
-<p>
-Question:
-Where is the attacking team and what shape is its formation?
-</p>
-
-<p>
-Features include:
-</p>
-
-<ul>
-  <li>T centroid</li>
-  <li>team stretch</li>
-  <li>x/y range</li>
-  <li>mean pairwise distance</li>
-  <li>convex hull area</li>
-  <li>bomb position</li>
-  <li>bomb-to-team-centroid distance</li>
-</ul>
-
-<p>
-Centroid alone cannot distinguish between a tightly grouped team
-and a widely spread formation with the same average position.
-Spread-related features were therefore added to represent formation
-shape.
-</p>
-
-
-<h3>A2 — Motion</h3>
-
-<p>
-Movement features are derived from position history rather than
-parser-specific velocity fields.
-</p>
-
-<p>
-This preserves training-serving parity for future live adapters.
-</p>
-
-
-<h3>A3 — Combat</h3>
-
-<p>
-Geometry sanity checks exposed an ambiguity.
-Several observations had zero spread or zero convex-hull area.
-</p>
-
-<p>
-The implementation was not broken.
-Those observations often had only one surviving T player.
-</p>
-
-<p>
-This showed that geometry requires survival context.
-Combat features were therefore added:
-</p>
-
-<ul>
-  <li>T / CT alive count</li>
-  <li>health totals and differences</li>
-  <li>armor totals and differences</li>
-</ul>
-
-
-<h3>A4 — Economy</h3>
-
-<p>
-The hypothesis was that current equipment value could represent
-remaining combat capability.
-</p>
-
-<p>
-It was tested rather than assumed useful.
-</p>
-
-
-<h3>A5 — Defense and Interaction</h3>
-
-<p>
-The model was also given CT spatial structure and interaction
-features such as:
-</p>
-
-<ul>
-  <li>CT centroid</li>
-  <li>CT formation spread</li>
-  <li>T-to-CT centroid distance</li>
-  <li>minimum opponent distance</li>
-  <li>mean nearest-opponent distance</li>
-</ul>
-
-</section>
-
-
-<section>
-
-<h2>7. Why Numerical and Tactical Sanity Checks?</h2>
-
-<p>
-A feature can be mathematically valid and still represent the wrong
-game concept.
-</p>
-
-<p>
-The pipeline therefore uses two checks before predictive evaluation:
-</p>
-
-<pre>
-Feature implementation
-↓
-Numerical sanity
-↓
-Tactical sanity
-↓
-Predictive ablation
-</pre>
-
-<p>
-Numerical sanity checks completeness, invalid values and plausible
-scale.
-</p>
-
-<p>
-Tactical sanity checks whether feature movement corresponds to
-observable game behavior.
-</p>
-
-<p>
-These checks validate construction.
-They do not prove predictive usefulness.
-That requires held-out ablation.
-</p>
-
-</section>
-
-
-<section>
-
-<h2>8. Logistic Regression Ablation</h2>
-
-<table>
-<thead>
-<tr>
-  <th>Stage</th>
-  <th>Added Information</th>
-  <th>Log Loss</th>
-  <th>Brier</th>
-  <th>Accuracy</th>
-  <th>Macro F1</th>
-</tr>
-</thead>
-
-<tbody>
-<tr>
-  <td>A0</td>
-  <td>Class prior</td>
-  <td>1.0240</td>
-  <td>0.6186</td>
-  <td>0.4913</td>
-  <td>0.2196</td>
-</tr>
-
-<tr>
-  <td>A1</td>
-  <td>Offensive Geometry</td>
-  <td>0.9161</td>
-  <td>0.5675</td>
-  <td>0.5142</td>
-  <td>0.4628</td>
-</tr>
-
-<tr>
-  <td>A2</td>
-  <td>Motion</td>
-  <td>0.9119</td>
-  <td>0.5612</td>
-  <td>0.5347</td>
-  <td>0.4823</td>
-</tr>
-
-<tr>
-  <td>A3</td>
-  <td>Combat</td>
-  <td>0.8359</td>
-  <td>0.4939</td>
-  <td>0.5994</td>
-  <td>0.5541</td>
-</tr>
-
-<tr>
-  <td>A4</td>
-  <td>Economy</td>
-  <td>0.8509</td>
-  <td>0.5011</td>
-  <td>0.5986</td>
-  <td>0.5495</td>
-</tr>
-
-<tr>
-  <td>A5</td>
-  <td>Defense</td>
-  <td>0.8408</td>
-  <td>0.4954</td>
-  <td>0.6151</td>
-  <td>0.5687</td>
-</tr>
-</tbody>
-</table>
-
-<p>
-Geometry produced the first major predictive gain.
-Motion added a small improvement.
-Combat produced another large improvement.
-</p>
-
-<p>
-Economy degraded probability quality.
-Defense improved classification metrics but not the primary
-probabilistic metrics.
-</p>
-
-</section>
-
-
-<section>
-
-<h2>9. Why Logistic Regression Was Not the End</h2>
-
-<p>
-Logistic Regression is intentionally simple.
-It is a strong baseline because the relationship between each feature
-and the prediction score is primarily linear.
-</p>
-
-<p>
-But tactical behavior can contain interactions:
-</p>
-
-<pre>
-T position
-×
-CT position
-×
-bomb location
-×
-survival
-×
-formation
-</pre>
-
-<p>
-The mixed Defense result suggested that useful defensive information
-might exist but require a nonlinear model.
-</p>
-
-<p>
-This hypothesis led to XGBoost.
-</p>
-
-</section>
-
-
-<section>
-
-<h2>10. What Is XGBoost?</h2>
-
-<p>
-XGBoost is a gradient-boosted decision-tree model.
-</p>
-
-<p>
-A decision tree divides the feature space through questions such as:
-</p>
-
-<pre>
-Is bomb_x below a threshold?
-        ↓
-
-Is CT centroid_y above a threshold?
-        ↓
-
-Is T alive count <= 2?
-</pre>
-
-<p>
-A single shallow tree is limited.
-Gradient boosting builds many trees sequentially.
-</p>
-
-<pre>
-Tree 1
-↓
-makes predictions and leaves errors
-
-Tree 2
-↓
-focuses on improving the remaining error
-
-Tree 3
-↓
-continues correcting the ensemble
-
-...
-
-Combined ensemble
-↓
-final probability prediction
-</pre>
-
-<p>
-This allows nonlinear relationships and feature interactions that a
-simple linear model cannot easily represent.
-</p>
-
-</section>
-
-
-<section>
-
-<h2>11. Why XGBoost Fits V0</h2>
-
-<p>
-V0 currently has:
-</p>
-
-<ul>
-  <li>tabular state features</li>
-  <li>a relatively small dataset</li>
-  <li>plausible nonlinear tactical interactions</li>
-  <li>a need for a strong non-neural baseline</li>
-</ul>
-
-<p>
-XGBoost is therefore a natural next model before introducing
-sequence neural networks.
-</p>
-
-</section>
-
-
-<section>
-
-<h2>12. Our XGBoost Design</h2>
-
-<pre>
-n_estimators      = 300
-max_depth         = 3
-learning_rate     = 0.03
-min_child_weight  = 5
-
-subsample         = 0.8
-colsample_bytree  = 0.8
-
-reg_alpha         = 0.5
-reg_lambda        = 5.0
-
-tree_method       = hist
-</pre>
-
-<p>
-The design intentionally uses shallow trees, a small learning rate,
-regularization and sampling.
-</p>
-
-<p>
-The dataset contains only 20 matches and 1,268 observations.
-A highly flexible tree ensemble could easily memorize development
-patterns.
-</p>
-
-<p>
-These parameters were used as a conservative nonlinear baseline.
-They were not selected through a large hyperparameter search over the
-same OOF results.
-</p>
-
-</section>
-
-
-<section>
-
-<h2>13. What XGBoost Changed</h2>
-
-<table>
-<thead>
-<tr>
-  <th>Model</th>
-  <th>Feature Set</th>
-  <th>Log Loss</th>
-  <th>Brier</th>
-  <th>Accuracy</th>
-  <th>Macro F1</th>
-</tr>
-</thead>
-
-<tbody>
-<tr>
-  <td>XGB-A3</td>
-  <td>Geometry + Motion + Combat</td>
-  <td>0.8157</td>
-  <td>0.4880</td>
-  <td>0.6167</td>
-  <td>0.5876</td>
-</tr>
-
-<tr>
-  <td>XGB-A4</td>
-  <td>A3 + Economy</td>
-  <td>0.8274</td>
-  <td>0.4958</td>
-  <td>0.6080</td>
-  <td>0.5786</td>
-</tr>
-
-<tr>
-  <td>XGB-A5</td>
-  <td>A3 + Defense</td>
-  <td>0.8024</td>
-  <td>0.4785</td>
-  <td>0.6285</td>
-  <td>0.5996</td>
-</tr>
-</tbody>
-</table>
-
-<p>
-XGB-A3 already improved over Logistic-A3.
-</p>
-
-<pre>
-Logistic A3
-0.8359
-
-↓
-
-XGB A3
-0.8157
-</pre>
-
-<p>
-More importantly, defensive state became useful:
-</p>
-
-<pre>
-XGB A3
-0.8157
-
-+ Defense
-
-↓
-
-XGB A5
-0.8024
-</pre>
-
-<p>
-This supports the hypothesis that defensive value contains nonlinear
-or interaction-dependent structure.
-</p>
-
-<p>
-Economy again degraded performance and remains excluded from the
-current V0 model.
-</p>
-
-</section>
-
-
-<section>
-
-<h2>14. Current Best Development Model</h2>
-
-<h3>XGB-A5</h3>
-
-<pre>
-Log Loss       0.8024
-Brier          0.4785
-Accuracy       0.6285
-Macro F1       0.5996
-
-A recall       0.5711
-B recall       0.4798
-NO recall      0.7207
-</pre>
-
-<p>
-This is the current best development baseline.
-It is not yet claimed as final generalization performance.
-</p>
-
-</section>
-
-
-<section>
-
-<h2>15. Calibration</h2>
-
-<p>
-A tactical probability model should not only choose the right class.
-Its confidence should also mean something.
-</p>
-
-<p>
-XGB-A5 top-label Expected Calibration Error:
-</p>
-
-<pre>
-ECE = 0.0454
-</pre>
-
-<p>
-Observed accuracy rose consistently with confidence:
-</p>
-
-<pre>
-confidence ≥ 0.50 → 66.8%
-confidence ≥ 0.60 → 72.7%
-confidence ≥ 0.70 → 81.2%
-confidence ≥ 0.80 → 88.6%
-confidence ≥ 0.90 → 94.9%
-</pre>
-
-<p>
-The main weakness occurred in the 0.6–0.7 confidence bin:
-</p>
-
-<pre>
-mean confidence = 64.6%
-observed accuracy = 52.4%
-</pre>
-
-<p>
-V0 is reasonably calibrated as a research baseline,
-but it is not yet treated as deployment-calibrated.
-</p>
-
-</section>
-
-
-<section>
-
-<h2>16. What Does the Model Get Wrong?</h2>
-
-<p>
-The confusion matrix exposed an important pattern.
-</p>
-
-<pre>
-A ↔ B site swaps:
-67 errors
-
-Plant ↔ No Plant:
-404 errors
-</pre>
-
-<p>
-Therefore:
-</p>
-
-<pre>
-85.8% of all errors
-cross the Plant / No-Plant boundary
-</pre>
-
-<p>
-The main V0 bottleneck is not deciding between A and B.
-It is predicting whether the round will successfully produce a plant.
-</p>
-
-</section>
-
-
-<section>
-
-<h2>17. Hierarchical Investigation</h2>
-
-<p>
-The error structure suggested that the original three-class problem
-might contain two different tactical subproblems.
-</p>
-
-<pre>
-State
-  ↓
-Will Plant?
-  ├── No
-  └── Yes
-        ↓
-     A or B?
-</pre>
-
-<p>
-Before redesigning the architecture, the existing XGB-A5
-probabilities were analyzed conditionally.
-</p>
-
-<h3>Plant vs No Plant</h3>
-
-<pre>
-Log Loss  0.5740
-Accuracy  69.1%
-F1        0.7066
-</pre>
-
-<h3>A vs B given True Plant</h3>
-
-<pre>
-Log Loss  0.4490
-Accuracy  78.5%
-</pre>
-
-<p>
-This supports the hypothesis that plant occurrence is the harder
-current subproblem.
-</p>
-
-<p>
-This is diagnostic evidence from the existing three-class model,
-not yet evidence that a separately trained hierarchical model is
-better.
-</p>
-
-</section>
-
-
-<section>
-
-<h2>18. Why Group Permutation Importance?</h2>
-
-<p>
-Tree models provide built-in importance measures, but highly related
-features can substitute for one another.
-</p>
-
-<p>
-Instead of asking:
-</p>
-
-<blockquote>
-How often did the trees use one particular variable?
-</blockquote>
-
-<p>
-V0 asks:
-</p>
-
-<blockquote>
-How much does held-out performance degrade if an entire information
-family is destroyed?
-</blockquote>
-
-<p>
-Each feature family is permuted as one block while preserving
-relationships inside the family.
-</p>
-
-</section>
-
-
-<section>
-
-<h2>19. Which Information Matters?</h2>
-
-<table>
-<thead>
-<tr>
-  <th>Feature Group</th>
-  <th>Δ Log Loss after permutation</th>
-</tr>
-</thead>
-
-<tbody>
-<tr>
-  <td>Offensive Geometry</td>
-  <td>+0.2806</td>
-</tr>
-<tr>
-  <td>Combat</td>
-  <td>+0.2315</td>
-</tr>
-<tr>
-  <td>Defense</td>
-  <td>+0.0274</td>
-</tr>
-<tr>
-  <td>Motion</td>
-  <td>+0.0112</td>
-</tr>
-<tr>
-  <td>Explicit Horizon</td>
-  <td>-0.0002</td>
-</tr>
-</tbody>
-</table>
-
-<p>
-Positive values mean model performance became worse after that
-information was destroyed.
-</p>
-
-<p>
-These values are not percentages and should not be added together.
-</p>
-
-</section>
-
-
-<section>
-
-<h2>20. Different Subproblems Use Different Information</h2>
-
-<h3>Plant vs No Plant</h3>
-
-<pre>
-Combat              +0.2287
-Offensive Geometry  +0.0287
-Defense             +0.0233
-Motion              +0.0084
-Horizon              ~0
-</pre>
-
-<p>
-Combat overwhelmingly dominates plant-occurrence prediction.
-</p>
-
-
-<h3>A vs B given True Plant</h3>
-
-<pre>
-Offensive Geometry  +0.4953
-Defense             +0.0081
-Combat              +0.0056
-Motion              +0.0054
-Horizon              ~0
-</pre>
-
-<p>
-Offensive Geometry overwhelmingly dominates site-choice prediction.
-</p>
-
-<p>
-This was a major V0 finding:
-different tactical questions depend on different state information.
-</p>
-
-</section>
-
-
-<section>
-
-<h2>21. Match-Level Robustness</h2>
-
-<p>
-Aggregate metrics alone can hide whether an improvement is caused by
-only a few favorable matches.
-</p>
-
-<p>
-XGB-A5 therefore was compared with Logistic-A3 separately on every
-held-out match.
-</p>
-
-<pre>
-XGB-A5 better Log Loss: 13 / 20 matches
-XGB-A5 better Brier:    13 / 20 matches
-
-Median Δ Log Loss: -0.0285
-Mean Δ Log Loss:   -0.0401
-</pre>
-
-<p>
-The negative median indicates that the aggregate improvement was not
-caused only by one extreme match.
-</p>
-
-<p>
-However, seven matches still regressed.
-Cross-match tactical variability remains important.
-</p>
-
-</section>
-
-
-<section>
-
-<h2>22. Uncertainty</h2>
-
-<p>
-A paired match-level bootstrap with 100,000 resamples was used to
-estimate uncertainty in the XGB-A5 versus Logistic-A3 comparison.
-</p>
-
-<h3>Log Loss</h3>
-
-<pre>
-Mean delta:
--0.0401
-
-95% bootstrap interval:
-[-0.0844, -0.0034]
-</pre>
-
-<h3>Brier</h3>
-
-<pre>
-Mean delta:
--0.0160
-
-95% bootstrap interval:
-[-0.0355, +0.0024]
-</pre>
-
-<p>
-The Log Loss evidence is stronger because its interval remains below
-zero.
-The Brier interval narrowly crosses zero.
-</p>
-
-<p>
-These are development-set uncertainty estimates.
-They are not final confirmatory test statistics.
-</p>
-
-</section>
-
-
-<section>
-
-<h2>23. What V0 Actually Learned</h2>
-
-<pre>
-TACTICAL STATE
-      │
-      ├───────────────┐
-      │               │
-      ▼               ▼
-WILL PLANT?       WHICH SITE?
-      │               │
-   COMBAT          GEOMETRY
-  dominates        dominates
-</pre>
-
-<p>
-This decomposition was not assumed before the experiments.
-It emerged from:
-</p>
-
-<ul>
-  <li>confusion analysis</li>
-  <li>conditional task analysis</li>
-  <li>task-specific permutation experiments</li>
-</ul>
-
-</section>
-
-
-<section>
-
-<h2>24. V1 Hypothesis</h2>
-
-<p>
-V0 currently uses one three-class classifier:
-</p>
-
-<pre>
-State
-↓
-A / B / No Plant
-</pre>
-
-<p>
-V0 evidence motivates a candidate hierarchical V1 architecture:
-</p>
-
-<pre>
-State
-↓
-Plant feasibility
-├── No
-└── Yes
-     ↓
-   Site choice
-   ├── A
-   └── B
-</pre>
-
-<p>
-This is a hypothesis produced by V0 evidence.
-It has not yet been shown to outperform the V0 model.
-</p>
-
-</section>
-
-
-<section>
-
-<h2>25. Evaluation Freeze</h2>
-
-<p>
-XGB-A5 was selected using the current 20-match development dataset.
-Continuing to tune repeatedly against these same OOF results would
-make the reported performance increasingly optimistic.
-</p>
-
-<p>
-V0 development evaluation is therefore frozen here.
-Future architecture changes should eventually be evaluated using
-additional untouched matches or an appropriately nested design.
-</p>
-
-</section>
-
-
-<section>
-
-<h2>V0 Status</h2>
-
-<pre>
-Data pipeline       ✓
-Feature pipeline    ✓
-Linear baseline     ✓
-Nonlinear baseline  ✓
-Calibration         ✓
-Error analysis      ✓
-Interpretability    ✓
-Robustness          ✓
-Uncertainty         ✓
-Evaluation frozen   ✓
-</pre>
-
-<p>
-Next:
-V1 research and hierarchical tactical modeling.
-</p>
-
-</section>
-
-</main>
-
-<script src="../assets/site.js"></script>
-
-</body>
-</html>
+<p>The original CSGO2 conversation supplies the project history and request to explain not just XGBoost but the design decisions and investigations that led to it. The checked-in code and frozen artifacts supply the quantitative and implementation details. Illustrations in this chapter explain concepts; they are not additional measured experiments.</p>
+</section></article><aside class="chapter-nav" aria-label="On this page"><strong>Inside this chapter</strong><div class="read-progress" aria-hidden="true"><i></i></div><a href="#chapter-01">01 · The question comes before the architecture</a><a href="#chapter-02">02 · Exactly what one prediction means</a><a href="#timing">03 · Time, eligibility, and the information boundary</a><a href="#chapter-04">04 · The dataset and why its size needs context</a><a href="#chapter-05">05 · Two source investigations that changed the design</a><a href="#features">06 · From raw state to a feature contract</a><a href="#chapter-07">07 · Geometry: where the team is and what shape it makes</a><a href="#chapter-08">08 · Motion, combat, economy, and defense</a><a href="#chapter-09">09 · Why sanity checks precede predictive evaluation</a><a href="#evaluation">10 · Match-grouped evaluation and out-of-fold predictions</a><a href="#chapter-11">11 · Metrics: why a correct class is not enough</a><a href="#chapter-12">12 · The linear baseline and the ablation logic</a><a href="#xgboost">13 · Why XGBoost was the next experiment</a><a href="#chapter-14">14 · The exact XGBoost configuration and its tradeoffs</a><a href="#chapter-15">15 · What the nonlinear comparison actually found</a><a href="#calibration">16 · Calibration: useful confidence with a visible weak spot</a><a href="#errors">17 · Error structure: the main failure is not an A/B swap</a><a href="#chapter-18">18 · Decomposing the task without training a new model</a><a href="#chapter-19">19 · What permutation importance does and does not explain</a><a href="#uncertainty">20 · Robustness, uncertainty, and the decision to freeze</a><a href="#limitations">21 · Limitations and the honest completion boundary</a><a href="#v1">22 · The V1 hypothesis and what would count as evidence</a><a href="#sources">23 · Source map and a practical reading path</a></aside></div><footer class="footer"><a href="../index.html">CS2 Tactical Intelligence Lab</a><span>V0 research record · September 2026</span><a href="../pages/v0.html#limitations">Read the limitations ↗</a></footer></div></main></div><script src="../assets/site.js"></script></body></html>
