@@ -17,8 +17,9 @@ data/raw/*
 data/interim/*
 data/processed/*
 
-# Preserve data directories
+# Preserve data directories and dataset provenance
 !data/raw/.gitkeep
+!data/raw/demo_manifest.csv
 !data/interim/.gitkeep
 !data/processed/.gitkeep
 

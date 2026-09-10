@@ -1,0 +1,21 @@
+demo filename,date,team1,team2,map,source,parse_status,n_rounds,n_observations
+2026-05-12_legacy_vs_m80_mirage.dem,2026-05-12,Legacy,M80,de_mirage,iem-atlanta-2026-legacy-vs-m80-bo3-JUzkE6ZdzPEgTMskOrd0gq.rar,parsed_ok,20,56
+2026-06-03_illwill_vs_ex-zero-tenacity_mirage.dem,2026-06-03,illwill,ex-Zero Tenacity,de_mirage,cct-2026-europe-series-3-illwill-vs-ex-zero-tenacity-bo3-wBPO5wDYyLm5dFpPW_4i3r.rar,parsed_ok,23,68
+2026-06-06_pain_vs_tyloo_mirage.dem,2026-06-06,paiN,TYLOO,de_mirage,iem-cologne-major-2026-stage-2-pain-vs-tyloo-mirage-1NC7ReNqrFaqBhZknCuY3H.rar,parsed_ok,22,61
+2026-06-10_ground-zero_vs_masked-regime_mirage.dem,2026-06-10,Ground Zero,Masked Regime,de_mirage,dfrag-open-series-5-ground-zero-vs-masked-regime-bo3-kaHkXqvZdjW7OxDtHLPsTW.rar,parsed_ok,19,52
+2026-06-14_detonate_vs_iowa-stormboar_mirage.dem,2026-06-14,DETONATE,Iowa Stormboar,de_mirage,nstlga-league-season-1-detonate-vs-iowa-stormboar-bo3-f7IP1CtvuGQSr2jYVvCMDa.rar,parsed_ok,30,93
+2026-06-16_ground-zero_vs_rooster_mirage.dem,2026-06-16,Ground Zero,Rooster,de_mirage,dfrag-open-series-5-ground-zero-vs-rooster-bo3-0YERL7EKdqSwTIwxtbq5bZ.rar,parsed_ok,23,60
+2026-06-16_illwill_vs_ex-ruby_mirage.dem,2026-06-16,illwill,ex-RUBY,de_mirage,cct-2026-europe-series-4-illwill-vs-ex-ruby-bo3-ctyE7sTloTnNxNtaY2i08D.rar,parsed_ok,36,101
+2026-07-09_bounty-hunters_vs_imperial_mirage.dem,2026-07-09,Bounty Hunters,Imperial,de_mirage,cct-2026-south-america-series-3-bounty-hunters-vs-imperial-bo3-c6pfIO7ojYbX38BX1itga8.rar,parsed_ok,28,88
+2026-07-17_ground-zero_vs_arcade_mirage.dem,2026-07-17,Ground Zero,Arcade,de_mirage,dfrag-hyperx-nationals-2026-ground-zero-vs-arcade-bo3-OUs2IGbldzmo_EDgDPBNTu.rar,parsed_ok,23,59
+2026-07-26_los-kogutos_vs_megoshort_mirage.dem,2026-07-26,los kogutos,megoshort,de_mirage,thunderpick-world-championship-2026-europe-series-2-los-kogutos-vs-megoshort-bo3-UR8L3h1FYcyBG2hd4CYpbK.rar,parsed_ok,22,55
+2026-08-14_b8_vs_vitality_mirage.dem,2026-08-14,B8,Vitality,de_mirage,esports-world-cup-2026-b8-vs-vitality-bo3-N4CDgIbMarl-Be8034f4a_.rar,parsed_ok,28,89
+2026-08-16_eac_vs_lavked_mirage.dem,2026-08-16,EAC,Lavked,de_mirage,esl-challenger-league-season-52-europe-cup-3-eac-vs-lavked-bo3-SjFQFILSm1GB_S_qPUr705.rar,parsed_ok,19,48
+2026-08-18_pcific_vs_just-players_mirage.dem,2026-08-18,PCIFIC,Just Players,de_mirage,cct-2026-europe-series-7-pcific-vs-just-players-bo3-rtR27HCbMSitk31pk34g-4.rar,parsed_ok,19,61
+2026-08-23_just-players_vs_ex-zero-tenacity_mirage.dem,2026-08-23,Just Players,ex-Zero Tenacity,de_mirage,cct-2026-europe-series-7-just-players-vs-ex-zero-tenacity-bo3-pVSzdrMoR2xbk_1ZxPcT2d.rar,parsed_ok,18,55
+2026-08-26_ex-zero-tenacity_vs_honved_mirage.dem,2026-08-26,ex-Zero Tenacity,Honved,de_mirage,exort-fiesta-series-1-ex-zero-tenacity-vs-honvd-bo3-NPFsFswDoWabc3m0W48_56.rar,parsed_ok,20,55
+2026-08-26_navi_vs_m80_mirage.dem,2026-08-26,NAVI,M80,de_mirage,blast-open-porto-2026-natus-vincere-vs-m80-bo3-tm48q6n_Lt1JZYgoQOvD3o.rar,parsed_ok,19,63
+2026-08-29_sinners_vs_ex-zero-tenacity_mirage.dem,2026-08-29,SINNERS,ex-Zero Tenacity,de_mirage,cct-2026-europe-series-7-sinners-vs-ex-zero-tenacity-bo3-3t0er0s1jnAB-A179cBia_.rar,parsed_ok,20,65
+2026-09-07_lavked_vs_leo_mirage.dem,2026-09-07,Lavked,Leo,de_mirage,cct-2026-europe-series-8-lavked-vs-leo-bo3-Vl8qV8jG1b4Cr6DRnDKCuA.rar,parsed_ok,21,49
+2026-09-08_mouz-nxt_vs_unity_mirage.dem,2026-09-08,MOUZ NXT,UNiTY,de_mirage,cct-2026-europe-series-8-mouz-nxt-vs-unity-bo3-4wf96olHAN9RNLR7kNwoFT.rar,parsed_ok,17,41
+havu-vs-mellren-m1-mirage.dem,2026-09-06,HAVU,mellren,de_mirage,esl-challenger-league-season-52-europe-cup-6-havu-vs-mellren-bo3-gYQKtqiFlYJhp1TwSofLkk.rar,parsed_ok,17,49

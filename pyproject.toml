@@ -7,7 +7,11 @@ authors = [
     { name = "zhenchenglin", email = "zhl132@ucsd.edu" }
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "awpy>=2.0.2",
+    "scikit-learn>=1.9.0",
+    "xgboost>=3.4.1",
+]
 
 [build-system]
 requires = ["uv_build>=0.12.10,<0.13.0"]
