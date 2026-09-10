@@ -1,0 +1,1 @@
+document.addEventListener('DOMContentLoaded',()=>{const p=document.body.dataset.page;document.querySelectorAll('.nav a').forEach(a=>{if(a.dataset.page===p)a.classList.add('active')});const b=document.querySelector('.menu'),s=document.querySelector('.side');if(b)b.onclick=()=>s.classList.toggle('open')});
