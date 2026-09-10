@@ -443,6 +443,7 @@ def build_feature_row(
     previous,
     bomb_now,
     bomb_previous,
+    motion_window_sec=MOTION_WINDOW_SEC,
 ):
     """
     Build one V0 feature row using only information
@@ -479,6 +480,11 @@ def build_feature_row(
     dict
         Feature values plus runtime QA metadata.
     """
+
+    if motion_window_sec <= 0:
+        raise ValueError(
+            "motion_window_sec must be positive"
+        )
 
     # ==============================================
     # Current alive teams
@@ -607,7 +613,7 @@ def build_feature_row(
                     pl.col("current_X")
                     - pl.col("previous_X")
                 )
-                / MOTION_WINDOW_SEC
+                / motion_window_sec
             ).alias("vx"),
 
             (
@@ -615,7 +621,7 @@ def build_feature_row(
                     pl.col("current_Y")
                     - pl.col("previous_Y")
                 )
-                / MOTION_WINDOW_SEC
+                / motion_window_sec
             ).alias("vy"),
         ])
         .with_columns(
@@ -635,12 +641,12 @@ def build_feature_row(
     centroid_vx = (
         movement["current_X"].mean()
         - movement["previous_X"].mean()
-    ) / MOTION_WINDOW_SEC
+    ) / motion_window_sec
 
     centroid_vy = (
         movement["current_Y"].mean()
         - movement["previous_Y"].mean()
-    ) / MOTION_WINDOW_SEC
+    ) / motion_window_sec
 
     (
         bomb_x_previous,
@@ -655,7 +661,7 @@ def build_feature_row(
             bomb_x_previous,
             bomb_y_previous,
         )
-        / MOTION_WINDOW_SEC
+        / motion_window_sec
     )
 
     # ==============================================
