@@ -1,7 +1,7 @@
 {
   "project": "CS2 Tactical Intelligence Lab",
-  "stage": "V0 offline development evaluation complete",
-  "v0_status": "EVALUATION FROZEN",
+  "stage": "V0 evaluation frozen; live engineering validated synthetically",
+  "v0_status": "EVALUATION FROZEN \u00b7 REAL GSI VALIDATION NEXT",
   "pages": [
     "index.html",
     "pages/v0.html",
@@ -24,5 +24,5 @@
   ],
   "selected_model": "XGB-A5",
   "observation_scope": "Mirage, full observer, 10/20/30/40 seconds after freeze_end",
-  "explanation_chapters": 23
+  "explanation_chapters": 24
 }

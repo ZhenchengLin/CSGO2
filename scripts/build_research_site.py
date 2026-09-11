@@ -1,13 +1,15 @@
 """Render the controlled V0 Markdown chapter into the existing static site shell.
 
 No third-party dependencies. Supports the paragraph, heading, list, fenced code,
-link, emphasis, and table syntax used in docs/v0_explained.md.
+link, emphasis, tables, and named math fences used in docs/v0_explained.md.
+Math fences use native MathML definitions in research_equations.py.
 """
 from pathlib import Path
 import html
 import json
 import re
 import shutil
+from research_equations import render_equations, format_inline_equations
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE = ROOT / 'site'
@@ -23,7 +25,7 @@ def inline(value):
     value = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', lambda m: '<a href="' + html.escape(html.unescape(m[2]), quote=True) + '">' + m[1] + '</a>', value)
     value = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', value)
     for i,code in enumerate(codes): value = value.replace(f'@@CODE{i}@@',code)
-    return value
+    return format_inline_equations(value)
 
 def anchor(heading):
     special = {'03':'timing','06':'features','10':'evaluation','13':'xgboost','16':'calibration','17':'errors','20':'uncertainty','21':'limitations','22':'v1','23':'sources'}
@@ -41,9 +43,14 @@ def render(markdown):
             sections.append((ident,number,title))
             out.append(f'<section id="{ident}"><span class="chapter-number">CHAPTER {number}</span><h2>{inline(title)}</h2>');section_open=True;i+=1;continue
         if line.startswith('```'):
+            language=line[3:].strip()
             block=[];i+=1
             while i<len(lines) and not lines[i].startswith('```'):block.append(lines[i]);i+=1
-            out.append('<pre><code>'+html.escape('\n'.join(block))+'</code></pre>');i+=1;continue
+            if language.startswith('math '):
+                out.append(render_equations(language.split(maxsplit=1)[1]))
+            else:
+                out.append('<pre><code>'+html.escape('\n'.join(block))+'</code></pre>')
+            i+=1;continue
         if line.startswith('|'):
             rows=[]
             while i<len(lines) and lines[i].startswith('|'):
@@ -68,7 +75,7 @@ article,sections=render(markdown.replace("(../site/pages/evidence.html)", "(evid
 title='Understanding V0'
 lead='The complete design story: what we predicted, how we investigated the data, why each model decision followed, and what the evidence actually supports.'
 nav='<aside class="chapter-nav" aria-label="On this page"><strong>Inside this chapter</strong><div class="read-progress" aria-hidden="true"><i></i></div>'+''.join(f'<a href="#{ident}">{num} · {inline(name)}</a>' for ident,num,name in sections)+'</aside>'
-body=f'<header class="hero"><div class="kicker">Version 0 / The complete explanation</div><h1>Understanding V0</h1><p class="lead">{lead}</p><div class="badges"><span class="badge ok">Development evaluation frozen</span><span class="badge">23 chapters</span><span class="badge">Full observer scope</span></div></header><div class="page-note">Read in order for the complete reasoning, or jump to a chapter. <a href="../assets/sources/v0_explained.md" download>Download the full guide ↓</a> · <a href="evidence.html">Open the evidence tables ↗</a></div><div class="reading-layout"><article class="article">{article}</article>{nav}</div>'
+body=f'<header class="hero"><div class="kicker">Version 0 / The complete explanation</div><h1>Understanding V0</h1><p class="lead">{lead}</p><div class="badges"><span class="badge ok">Development evaluation frozen</span><span class="badge">{len(sections)} chapters</span><span class="badge ok">Live path: synthetic E2E passed</span></div></header><div class="page-note">Read in order for the complete reasoning, or jump to a chapter. <a href="../assets/sources/v0_explained.md" download>Download the full guide ↓</a> · <a href="evidence.html">Open the evidence tables ↗</a></div><div class="reading-layout"><article class="article">{article}</article>{nav}</div>'
 template=(SITE/'pages/models.html').read_text()
 template=re.sub(r'<title>.*?</title>',f'<title>{title} — CS2 Tactical Intelligence Lab</title>',template)
 template=re.sub(r'<meta name="description" content="[^"]*">','<meta name="description" content="'+lead+'">',template)
@@ -86,6 +93,6 @@ for name in ['v0_explained.md','v0_evaluation_summary.md','v0_feature_candidate_
 for source in sorted((ROOT/'artifacts').glob('v0_*.csv')):
     shutil.copyfile(source,SITE/'assets/data'/source.name)
 manifest=json.loads((SITE/'site-manifest.json').read_text())
-manifest.update(stage='V0 offline development evaluation complete',v0_status='EVALUATION FROZEN',selected_model='XGB-A5',observation_scope='Mirage, full observer, 10/20/30/40 seconds after freeze_end',pages=['index.html']+['pages/'+p+'.html' for p in ['v0','evidence','models','data','roadmap','decisions','research','build-log','journey']],explanation_chapters=len(sections))
+manifest.update(stage='V0 evaluation frozen; live engineering validated synthetically',v0_status='EVALUATION FROZEN · REAL GSI VALIDATION NEXT',selected_model='XGB-A5',observation_scope='Mirage, full observer, 10/20/30/40 seconds after freeze_end',pages=['index.html']+['pages/'+p+'.html' for p in ['v0','evidence','models','data','roadmap','decisions','research','build-log','journey']],explanation_chapters=len(sections))
 (SITE/'site-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
 print(f'Rendered {len(sections)} V0 chapters ({len(markdown.split()):,} words) and copied frozen evidence.')

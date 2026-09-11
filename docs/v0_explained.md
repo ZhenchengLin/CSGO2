@@ -4,6 +4,24 @@ V0 is the first version of the CS2 Tactical Intelligence research project: an Ea
 
 The important result is more than a winning model name. V0 established a way to investigate data, challenge assumptions, compare representations, evaluate uncertainty, and let observed failure modes shape the next question. This chapter explains that reasoning in order. Project-specific numbers come from the frozen local evaluation artifacts; explanatory examples are labeled as illustrations.
 
+## 00 · V0 in one roadmap
+
+V0 asks one narrow question: **from observer-visible Mirage state before a plant or round end, how much can we forecast the eventual outcome: A plant, B plant, or no plant?**
+
+- **01 · Define the target** — Observe at 10 / 20 / 30 / 40 seconds after `freeze_end`; predict `A_PLANT / B_PLANT / NO_PLANT`.
+- **02 · Audit tactical data** — Derive labels from plant events, reconstruct the current bomb state, and block future-information leakage.
+- **03 · Build observations** — 20 demos → 443 valid-timing rounds → 1,268 eligible pre-outcome snapshots.
+- **04 · Engineer the state** — Encode offensive geometry, 1-second motion, combat state, and defense/inter-team structure. Economy was tested and dropped. Final model input: 37 numeric features.
+- **05 · Protect evaluation** — Use 5-fold `StratifiedGroupKFold` by match. Each fold trains on about 16 matches and tests on about 4 unseen matches.
+- **06 · Ablate feature families** — A0 prior → A1 geometry → A2 motion → A3 combat → A4 economy → A5 defense. Compare the same held-out folds using Log Loss, Brier, Accuracy, and Macro F1.
+- **07 · Test nonlinearity** — Logistic Regression establishes the linear baseline. XGBoost tests nonlinear interactions. Defense adds value in XGBoost, making XGB-A5 the selected V0 model.
+- **08 · Freeze the evidence** — OOF XGB-A5: Log Loss 0.8024, Brier 0.4785, Accuracy 0.6285, Macro F1 0.5996. Most errors are Plant ↔ No Plant rather than A ↔ B.
+- **09 · Build the live path** — Demo / Replay / GSI → canonical state → shared FeatureBuilder → predictor. Replay parity is exact across 20 matches and 1,268 observations; synthetic GSI HTTP inference passes at 10 / 20 / 30 / 40 seconds. Real-CS2 GSI source validation is next.
+
+**V0 in one sentence:** tactical data engineering turns raw match state into a reproducible 37-feature contract; ML engineering tests which information generalizes; live engineering reuses the same contract without changing the frozen scientific evidence.
+
+**Current limitation:** V0 is still a snapshot model, not a full sequence model. It uses current state plus roughly one second of motion history.
+
 ## 01 · The question comes before the architecture
 
 The long-term ambition is a system that can observe a match, recognize tactical behavior, forecast what happens next, retrieve similar historical situations, model an opponent, and eventually evaluate possible responses. Each of those capabilities asks a different question. A model that forecasts a plant site does not automatically recognize a fake, understand a team's intention, or know which counter-strategy would win.
@@ -28,7 +46,7 @@ The scope is Mirage, viewed through the attacking T side of each round. The inpu
 
 For state history available through observation time t, the target is:
 
-```text
+```math forecast
 P(Y | S[0:t]), where Y ∈ {A_PLANT, B_PLANT, NO_PLANT}
 
 Implemented V0: history → engineered feature vector x(t) → model → probabilities
@@ -40,13 +58,13 @@ An illustrative output is P(A) = 0.55, P(B) = 0.20, and P(NO) = 0.25. The three 
 
 A plant label also does not describe the round winner. A T-side plant followed by a CT defuse is still a plant observation. Conversely, a round can end without a plant for different reasons. Those reasons are compressed into NO_PLANT rather than separately labeled in V0. That deliberately broad class will later become central to the error analysis.
 
-V0 does not currently generate tactical recommendations, infer concealed intentions, evaluate counterfactual actions, or provide demonstrated live predictions. It is a frozen offline research baseline for one precisely defined task.
+V0 still does not generate tactical recommendations, infer concealed intentions, or evaluate counterfactual actions. Its scientific evidence remains the frozen offline grouped-OOF evaluation, while the engineering path now supports exact historical replay parity and synthetic GSI live inference at the same 10 / 20 / 30 / 40-second checkpoints. Real-CS2 GSI source validation remains pending.
 
 ## 03 · Time, eligibility, and the information boundary
 
 Four observation horizons were fixed: 10, 20, 30, and 40 seconds after freeze_end. Freeze end is the point after the pre-round freeze period. Starting the clock there makes the horizons describe playable round time rather than time spent waiting before the round starts.
 
-```text
+```math timing
 target_tick = freeze_end + horizon_seconds × demo_tickrate
 
 Eligible only when:
@@ -114,7 +132,7 @@ The selected XGB-A5 model uses 37 inputs:
 
 The family names describe information, while the A0–A5 labels describe experiments. A1 includes horizon plus offensive geometry. A2 adds motion. A3 adds combat. A4 tests economy on top of A3. A5 tests defense on top of A3, not on top of A4. This branching structure is essential for interpreting the experiments.
 
-The longer-term architecture keeps raw-source adapters outside a shared representation and feature builder. Historical demos, replay, and an observer-compatible live source should ultimately produce equivalent feature meanings. In V0, position-derived movement was chosen partly because it can be reconstructed from position history instead of depending on a parser-specific velocity field. This is a design for future parity, not evidence that the live adapter already achieves it.
+The runtime architecture keeps raw-source adapters outside a canonical state and shared FeatureBuilder. Historical replay reproduces the frozen feature rows exactly across all 20 development matches and 1,268 observations, and the synthetic GSI HTTP path reaches the same predictor at 10 / 20 / 30 / 40 seconds. Position-derived movement is reconstructed from timestamped positions rather than parser-only velocity fields. This establishes engineering parity inside controlled replay and synthetic tests; it does not yet prove that real CS2 GSI payload semantics and cadence match the design.
 
 ## 07 · Geometry: where the team is and what shape it makes
 
@@ -122,7 +140,7 @@ A team centroid averages alive-player coordinates. It represents an approximate 
 
 The offensive family contains T centroid x/y/z, mean XY distance to that centroid (stretch), x and y ranges, mean pairwise XY distance, and convex hull area. It also contains bomb x/y/z and bomb-to-T-centroid distance. Together these describe approximate location, dispersion, extent, and whether the bomb is traveling with the formation.
 
-```text
+```math geometry
 centroid = average of alive-player coordinates
 stretch = average XY distance from each alive player to the centroid
 range_x = largest x − smallest x
@@ -187,11 +205,11 @@ OOF predictions are held out from the fit that produced them. They are neverthel
 
 V0 is a probability forecaster. Log loss and Brier score are therefore primary numerical metrics, with calibration inspection alongside them. Accuracy, macro F1, and class-specific recall explain classification behavior but do not replace probability assessment.
 
-Log loss is the average negative natural logarithm of the probability assigned to the true class. It strongly penalizes confidently wrong forecasts. In an illustrative A-plant example, assigning A probability 0.8 gives loss −ln(0.8) ≈ 0.223; assigning A 0.2 gives ≈ 1.609. Smaller is better. See the [scikit-learn log-loss definition](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.log_loss.html).
+Log loss is the average negative natural logarithm of the probability assigned to the true class. It strongly penalizes confidently wrong forecasts. In an illustrative A-plant example, assigning A probability 0.8 gives loss −ln(0.8) ≈ 0.223; assigning A 0.2 gives −ln(0.2) ≈ 1.609. Smaller is better. See the [scikit-learn log-loss definition](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.log_loss.html).
 
 The project's multiclass Brier implementation averages the sum of squared errors across all three probability columns. It is not divided by the number of classes. For probabilities (0.55, 0.20, 0.25) and a true A label (1, 0, 0), the illustrative per-observation score is 0.2025 + 0.0400 + 0.0625 = 0.3050. The multiclass convention used here ranges from 0 to 2; lower is better.
 
-```text
+```math metrics
 Log loss = average[−ln(probability assigned to the true class)]
 Brier = average[sum over classes (predicted probability − one-hot truth)²]
 Accuracy = fraction whose largest-probability class is correct
@@ -205,7 +223,7 @@ Calibration asks whether stated confidence agrees with empirical frequency acros
 
 A class prior asks whether any state information is necessary to beat knowledge of training-set outcome frequencies. Logistic regression then gives a regularized, comparatively simple model for testing the engineered representation. For each class it learns a score from weighted features; softmax converts the three scores into probabilities.
 
-```text
+```math logistic
 score(class k) = intercept_k + sum_j weight[k,j] × standardized_feature[j]
 P(class k) = exp(score_k) / sum_c exp(score_c)
 ```
@@ -316,7 +334,7 @@ This error grouping changes the next research question. It suggests that predict
 
 The hierarchical analysis reuses the existing three-class probabilities. It first combines A and B to obtain plant probability, then renormalizes A and B for conditional site choice.
 
-```text
+```math conditional
 P(plant) = P(A) + P(B)
 P(A | plant) = P(A) / [P(A) + P(B)]
 P(B | plant) = P(B) / [P(A) + P(B)]
@@ -390,7 +408,7 @@ The website documents these findings. Its deployment is a publication of the res
 
 V0's errors and importance analysis motivate a candidate two-stage architecture: one model estimates plant feasibility; a second estimates site choice conditional on a plant. A possible probability composition would be:
 
-```text
+```math hierarchy
 q = predicted P(plant)
 r = predicted P(A | plant)
 
