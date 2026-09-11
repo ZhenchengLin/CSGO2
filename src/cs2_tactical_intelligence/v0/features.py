@@ -1,10 +1,16 @@
 import math
+from bisect import bisect_left
 from itertools import combinations
 from pathlib import Path
 
 import numpy as np
 import polars as pl
 from awpy import Demo
+
+from cs2_tactical_intelligence.v0.timing import (
+    open_v0_demo,
+    seconds_to_demo_ticks,
+)
 from scipy.spatial import ConvexHull, QhullError
 
 
@@ -221,11 +227,8 @@ def build_observations(demo):
 
             target_tick = (
                 freeze_end
-                + int(
-                    round(
-                        horizon_sec
-                        * demo.tickrate
-                    )
+                + seconds_to_demo_ticks(
+                    horizon_sec
                 )
             )
 
@@ -338,6 +341,277 @@ def get_bomb_position(
 
 
 # ==================================================
+# Historical snapshot timing resolution
+# ==================================================
+
+MAX_HISTORICAL_CURRENT_LATENESS_TICKS = 1
+
+
+def resolve_observation_ticks(
+    demo,
+    observations,
+):
+    """
+    Resolve nominal V0 observation ticks onto actual
+    historical player snapshots.
+
+    Current snapshot policy
+    -----------------------
+    Use the first available snapshot AT OR AFTER the
+    nominal horizon.
+
+    The audited 20-demo V0 corpus contains:
+
+        1685 exact observations
+        1 observation late by exactly 1 tick
+
+    Therefore V0 permits at most one raw demo tick
+    of historical current-snapshot lateness.
+
+    Previous snapshot policy
+    ------------------------
+    After resolving the actual current snapshot,
+    require an exact snapshot one real second earlier.
+
+    The audited corpus has exact 1.000-second history
+    for all 1686 corrected observations.
+    """
+
+    motion_ticks = (
+        seconds_to_demo_ticks(
+            MOTION_WINDOW_SEC
+        )
+    )
+
+    # ----------------------------------------------
+    # Available player snapshot ticks by round
+    # ----------------------------------------------
+
+    ticks_by_round = {}
+
+    tick_rows = (
+        demo.ticks
+        .select([
+            "round_num",
+            "tick",
+        ])
+        .unique()
+        .sort([
+            "round_num",
+            "tick",
+        ])
+    )
+
+    for row in tick_rows.iter_rows(
+        named=True
+    ):
+        round_num = row[
+            "round_num"
+        ]
+
+        tick = row[
+            "tick"
+        ]
+
+        ticks_by_round.setdefault(
+            round_num,
+            [],
+        ).append(
+            tick
+        )
+
+    # ----------------------------------------------
+    # Round-end lookup
+    # ----------------------------------------------
+
+    round_end_lookup = {}
+
+    for row in (
+        demo.rounds
+        .iter_rows(
+            named=True
+        )
+    ):
+        round_end_lookup[
+            row["round_num"]
+        ] = row["end"]
+
+    # ----------------------------------------------
+    # Plant lookup
+    # ----------------------------------------------
+
+    plant_lookup = (
+        build_plant_lookup(
+            demo.bomb
+        )
+    )
+
+    resolved = []
+
+    for obs in observations:
+
+        round_num = (
+            obs["round_num"]
+        )
+
+        nominal_target = (
+            obs["target_tick"]
+        )
+
+        available_ticks = (
+            ticks_by_round.get(
+                round_num,
+                [],
+            )
+        )
+
+        if not available_ticks:
+            raise ValueError(
+                f"No player snapshots for "
+                f"round={round_num}"
+            )
+
+        # ==========================================
+        # Current:
+        # first snapshot >= nominal target
+        # ==========================================
+
+        position = bisect_left(
+            available_ticks,
+            nominal_target,
+        )
+
+        if position >= len(
+            available_ticks
+        ):
+            raise ValueError(
+                "No player snapshot at/after "
+                f"nominal target: "
+                f"round={round_num}, "
+                f"tick={nominal_target}"
+            )
+
+        actual_target = (
+            available_ticks[
+                position
+            ]
+        )
+
+        lateness_ticks = (
+            actual_target
+            - nominal_target
+        )
+
+        if (
+            lateness_ticks
+            >
+            MAX_HISTORICAL_CURRENT_LATENESS_TICKS
+        ):
+            raise ValueError(
+                "Historical snapshot lateness "
+                "exceeds V0 tolerance: "
+                f"round={round_num}, "
+                f"nominal={nominal_target}, "
+                f"actual={actual_target}, "
+                f"lateness_ticks="
+                f"{lateness_ticks}"
+            )
+
+        # ==========================================
+        # Preserve pre-plant / active semantics
+        #
+        # A one-tick forward resolution must not
+        # accidentally cross round_end or plant.
+        # ==========================================
+
+        round_end = (
+            round_end_lookup[
+                round_num
+            ]
+        )
+
+        if (
+            round_end is not None
+            and actual_target
+            >= round_end
+        ):
+            continue
+
+        plant_info = (
+            plant_lookup.get(
+                round_num
+            )
+        )
+
+        if plant_info is not None:
+
+            plant_tick = (
+                plant_info[
+                    "plant_tick"
+                ]
+            )
+
+            if (
+                actual_target
+                >= plant_tick
+            ):
+                continue
+
+        # ==========================================
+        # Previous:
+        # exact 1 real second before ACTUAL current
+        # ==========================================
+
+        previous_tick = (
+            actual_target
+            - motion_ticks
+        )
+
+        previous_position = (
+            bisect_left(
+                available_ticks,
+                previous_tick,
+            )
+        )
+
+        previous_exists = (
+            previous_position
+            < len(available_ticks)
+            and available_ticks[
+                previous_position
+            ]
+            == previous_tick
+        )
+
+        if not previous_exists:
+            raise ValueError(
+                "Missing exact 1-second "
+                "historical snapshot: "
+                f"round={round_num}, "
+                f"current={actual_target}, "
+                f"previous={previous_tick}"
+            )
+
+        resolved_obs = dict(
+            obs
+        )
+
+        resolved_obs[
+            "nominal_target_tick"
+        ] = nominal_target
+
+        resolved_obs[
+            "target_tick"
+        ] = actual_target
+
+        resolved.append(
+            resolved_obs
+        )
+
+    return resolved
+
+
+# ==================================================
 # Snapshot cache
 # ==================================================
 
@@ -353,11 +627,8 @@ def build_snapshot_index(
     separately for every feature calculation.
     """
 
-    lag_ticks = int(
-        round(
-            MOTION_WINDOW_SEC
-            * demo.tickrate
-        )
+    lag_ticks = seconds_to_demo_ticks(
+        MOTION_WINDOW_SEC
     )
 
     needed = set()
@@ -971,8 +1242,8 @@ def build_features_for_demo(
 ):
     demo_path = Path(demo_path)
 
-    demo = Demo(
-        str(demo_path),
+    demo = open_v0_demo(
+        demo_path,
         verbose=False,
     )
 
@@ -993,6 +1264,13 @@ def build_features_for_demo(
         build_observations(demo)
     )
 
+    observations = (
+        resolve_observation_ticks(
+            demo,
+            observations,
+        )
+    )
+
     snapshot_index = (
         build_snapshot_index(
             demo,
@@ -1000,11 +1278,8 @@ def build_features_for_demo(
         )
     )
 
-    lag_ticks = int(
-        round(
-            MOTION_WINDOW_SEC
-            * demo.tickrate
-        )
+    lag_ticks = seconds_to_demo_ticks(
+        MOTION_WINDOW_SEC
     )
 
     rows = []

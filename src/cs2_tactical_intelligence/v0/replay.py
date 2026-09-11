@@ -21,6 +21,11 @@ from cs2_tactical_intelligence.v0.schema import (
     normalize_v0_frame,
 )
 
+from cs2_tactical_intelligence.v0.timing import (
+    open_v0_demo,
+    seconds_to_demo_ticks,
+)
+
 from cs2_tactical_intelligence.v0.features import (
     HORIZONS_SEC,
     MOTION_WINDOW_SEC,
@@ -29,6 +34,7 @@ from cs2_tactical_intelligence.v0.features import (
     build_snapshot_index,
     get_bomb_position,
     require_snapshot,
+    resolve_observation_ticks,
 )
 
 
@@ -42,8 +48,8 @@ class V0ReplayAdapter:
             demo_path
         )
 
-        self.demo = Demo(
-            str(self.demo_path),
+        self.demo = open_v0_demo(
+            self.demo_path,
             verbose=False,
         )
 
@@ -149,11 +155,8 @@ class V0ReplayAdapter:
 
                 target_tick = (
                     freeze_end
-                    + int(
-                        round(
-                            horizon_sec
-                            * self.demo.tickrate
-                        )
+                    + seconds_to_demo_ticks(
+                        horizon_sec
                     )
                 )
 
@@ -211,6 +214,13 @@ class V0ReplayAdapter:
             invalid_rounds,
         ) = self.build_observations()
 
+        observations = (
+            resolve_observation_ticks(
+                self.demo,
+                observations,
+            )
+        )
+
         snapshot_index = (
             build_snapshot_index(
                 self.demo,
@@ -218,11 +228,8 @@ class V0ReplayAdapter:
             )
         )
 
-        lag_ticks = int(
-            round(
-                MOTION_WINDOW_SEC
-                * self.demo.tickrate
-            )
+        lag_ticks = seconds_to_demo_ticks(
+            MOTION_WINDOW_SEC
         )
 
         rows = []
