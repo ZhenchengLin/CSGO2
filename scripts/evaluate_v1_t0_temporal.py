@@ -648,6 +648,18 @@ for fold in sorted(
         )
     )
 
+    # Explicit numerical normalization.
+    # XGBoost probabilities are already effectively
+    # normalized, but sklearn uses a stricter check.
+    probabilities = (
+        probabilities
+        /
+        probabilities.sum(
+            axis=1,
+            keepdims=True,
+        )
+    )
+
 
     assert probabilities.shape == (
         len(test_index),
