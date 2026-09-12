@@ -11,7 +11,7 @@
     Understanding V1
   </h1>
 
-  <p><a href="#reading-v1">New: How to Read the V1 Evidence — Lessons 1–3 and 14 concepts ↓</a></p>
+  <p><a href="#reading-v1">New: How to Read the V1 Evidence — Lessons 1–5 and 14 concepts ↓</a></p>
 
   <p class="lead">
     A controlled sequence of experiments asked whether
@@ -974,6 +974,8 @@ P(NO) = 1 - q</code></pre>
     <a class="badge" href="#v1-lesson-1">01 · Why hierarchy?</a>
     <a class="badge" href="#v1-lesson-2">02 · H0 → H1 → H2</a>
     <a class="badge" href="#v1-lesson-3">03 · Why keep V0?</a>
+    <a class="badge" href="#v1-lesson-4">04 · Leakage vs optimism</a>
+    <a class="badge" href="#v1-lesson-5">05 · Designing V2 evidence</a>
     <a class="badge" href="#v1-glossary">14 concepts explained</a>
   </nav>
 </section>
@@ -1037,6 +1039,287 @@ P(NO) = 1 - q</code></pre>
   </div>
   <p><strong>Transferable research habit:</strong> inspect how a baseline fails, propose a testable change, hold the comparison conditions fixed, and inspect uncertainty before adding complexity. A well-supported stopping decision is a research result.</p>
 </section>
+
+
+<section id="v1-lesson-4" class="section">
+  <div class="kicker">
+    Lesson 4 · Evaluation machinery
+  </div>
+
+  <h2>
+    No leakage does not mean no optimism
+  </h2>
+
+  <p>
+    <strong>Leakage</strong> means information that should
+    be unavailable enters training or evaluation.
+    Examples include future-state features, putting rows
+    from the same match on both sides of a train/test
+    split, or fitting a calibrator using outer-test labels.
+  </p>
+
+  <p>
+    <strong>Optimism</strong> is different. An evaluation
+    can still look better than future performance because
+    model decisions repeatedly adapt to the same
+    development evidence. H0, H1, H2 and T0 all reuse the
+    same 20-match corpus. Their evaluation can therefore
+    be leakage-safe while still being development evidence.
+  </p>
+
+  <div class="grid-2">
+    <article class="card">
+      <h3>Nested calibration</h3>
+      <p>
+        Inside each outer training partition, inner grouped
+        folds generate held-out Site Head probabilities.
+        The calibrator is fitted only from those inner OOF
+        predictions and labels.
+      </p>
+    </article>
+
+    <article class="card">
+      <h3>What nesting protects</h3>
+      <p>
+        Outer-test labels never train the base model or
+        calibration parameters. This prevents calibration
+        leakage. It cannot erase the fact that H2 was
+        designed after observing H0 and H1.
+      </p>
+    </article>
+  </div>
+
+  <h3>Platt calibration</h3>
+
+  <p>
+    H2 converts the raw Site probability <em>p</em> to
+    log-odds, learns a linear correction, then converts
+    the result back to a probability.
+  </p>
+
+  <pre><code>z = ln(p / (1 - p))
+
+p_cal = sigmoid(a * z + b)</code></pre>
+
+  <p>
+    The fitted H2 slopes are roughly 0.71–0.78.
+    A slope below one compresses log-odds variation,
+    which is consistent with a raw Site Head that is
+    somewhat too sharp. The intercept also shifts the
+    odds, so this is not simply a mechanical move of
+    every probability toward 0.5.
+  </p>
+
+  <h3>Paired match bootstrap</h3>
+
+  <p>
+    For each match we define
+    <code>ΔLL = LL(H2) - LL(V0)</code>.
+    Negative means H2 is better. We resample the 20
+    match-level differences with replacement, compute the
+    equal-match mean, and repeat this 100,000 times.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Statistic</th>
+          <th>Measured result</th>
+          <th>Interpretation</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>H2 LL match wins</td>
+          <td>9 / 20</td>
+          <td>
+            Most matches do not favor H2 on log loss.
+          </td>
+        </tr>
+
+        <tr>
+          <td>Equal-match mean ΔLL</td>
+          <td>−0.001852</td>
+          <td>
+            The average match difference slightly
+            favors H2.
+          </td>
+        </tr>
+
+        <tr>
+          <td>Median ΔLL</td>
+          <td>+0.007943</td>
+          <td>
+            The middle observed match difference
+            favors V0.
+          </td>
+        </tr>
+
+        <tr>
+          <td>95% bootstrap interval</td>
+          <td>[−0.016685, +0.012170]</td>
+          <td>
+            The interval crosses zero, so the direction
+            is not robust under the current
+            match-level uncertainty.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    The mean can be pulled by a minority of larger gains
+    or losses. The median describes the middle observed
+    match. This is why H2 can have a negative mean delta
+    while its median delta is positive.
+  </p>
+
+  <div class="callout">
+    <strong>Key distinction:</strong>
+    nested calibration makes the H2 evaluation
+    leakage-safe. It does not make H2 independent
+    confirmatory evidence, because the same 20 matches
+    informed the research path that produced H2.
+  </div>
+</section>
+
+
+<section id="v1-lesson-5" class="section">
+  <div class="kicker">
+    Lesson 5 · Designing the next evidence stage
+  </div>
+
+  <h2>
+    V2 should improve the evidence before
+    increasing the model complexity
+  </h2>
+
+  <p>
+    The current 20 Mirage matches have already informed
+    V0 selection, the hierarchical hypothesis, H0
+    diagnosis, H1 specialization, H2 calibration and T0.
+    They remain valuable development data, but they
+    should no longer be asked to independently certify a
+    new model.
+  </p>
+
+  <div class="flow">
+    <div class="node">
+      <b>Old 20</b><br>
+      development knowledge
+    </div>
+
+    <span class="arrow">→</span>
+
+    <div class="node">
+      <b>New matches</b><br>
+      split before tuning
+    </div>
+
+    <span class="arrow">→</span>
+
+    <div class="node">
+      <b>Development</b><br>
+      grouped CV
+    </div>
+
+    <span class="arrow">→</span>
+
+    <div class="node">
+      <b>Freeze</b><br>
+      model + rules
+    </div>
+
+    <span class="arrow">→</span>
+
+    <div class="node">
+      <b>Holdout</b><br>
+      confirm once
+    </div>
+  </div>
+
+  <h3>Development set versus holdout set</h3>
+
+  <p>
+    A <strong>development set</strong> is allowed to
+    influence features, architectures, diagnostics and
+    model selection. A <strong>holdout set</strong> is
+    reserved before experimentation and should not
+    influence those choices.
+  </p>
+
+  <p>
+    Grouped cross-validation can still be used inside the
+    development set. The untouched holdout answers a
+    different question: does the frozen candidate reproduce
+    its advantage on genuinely new matches?
+  </p>
+
+  <h3>Preregistration</h3>
+
+  <p>
+    Before opening the future holdout, V2 should commit a
+    protocol specifying the candidate, frozen baseline,
+    primary metrics, grouping unit, comparison method and
+    promotion gate. This prevents changing the success
+    rule after seeing the result.
+  </p>
+
+  <h3>Multiple comparisons</h3>
+
+  <p>
+    Trying many feature subsets, calibration methods,
+    hyperparameters and temporal windows on the same
+    development corpus increases the probability that one
+    model looks unusually good because of sample noise.
+    V2 should therefore make each experiment answer one
+    explicit hypothesis instead of performing an open-ended
+    search for the lowest score.
+  </p>
+
+  <h3>More matches matter more than simply more rows</h3>
+
+  <p>
+    The 1,686 V0 observations are not 1,686 independent
+    match experiences. Rows from a match share players,
+    strategy and context. Increasing the diversity of
+    independent matches is therefore more valuable for
+    confirmation than sampling the same matches more
+    densely.
+  </p>
+
+  <div class="grid-2">
+    <article class="card">
+      <h3>H2's next role</h3>
+      <p>
+        H2 becomes a promising frozen hypothesis.
+        On new independent data, the cleanest test is to
+        evaluate the existing H2 design before retuning it.
+      </p>
+    </article>
+
+    <article class="card">
+      <h3>Sequence-model gate</h3>
+      <p>
+        A GRU, LSTM, TCN or Transformer should reopen only
+        when new evidence identifies useful path-dependent
+        information that snapshots or simple deltas cannot
+        represent, or when substantially more data supports
+        a sequence model.
+      </p>
+    </article>
+  </div>
+
+  <div class="callout warn">
+    <strong>Current V2 principle:</strong>
+    the scarce resource is not model complexity.
+    It is new, independent, informative evidence.
+  </div>
+</section>
+
 
 <section id="v1-glossary" class="section">
   <div class="kicker">Reference · What it means, why we use it, how to read it</div>
