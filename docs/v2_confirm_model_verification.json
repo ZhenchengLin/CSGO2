@@ -1,0 +1,25 @@
+{
+  "verification_status": "PASS",
+  "verified_utc": "2026-09-12T22:35:33.353331+00:00",
+  "model_freeze_record": "docs/v2_confirm_model_freeze.json",
+  "fit_git_commit": "9836c9e88b8bdfa2203658500ef58e413e2f0dae",
+  "training_dataset_sha256": "092268fa06b0ed93e21aae444eeed81d3794887dc7bc8e7cf0ba9f4aa806e8ff",
+  "artifact_sha256": {
+    "v0": "11cf15c55b96c4927f9c5f33df126e20be42713d13ba5f032dec824e4d0510be",
+    "h2_plant": "3f403b784700569ce4dd0cdbe3931e905f587e92ea4febacf52bec5801849fe2",
+    "h2_site": "db039ab23ef5a40b697228635bbfd92ef6a5e9f29bd15e28ab43675e562eae33",
+    "h2_platt": "f956c49af9548239266b946f163eaedcd056e4c2378d938d7bcf4aa6db701f9f"
+  },
+  "checks": {
+    "confirmation_data_accessed": false,
+    "training_dataset_hash": true,
+    "fit_commit_exists": true,
+    "committed_fit_script_hash": true,
+    "artifact_hashes": true,
+    "feature_contracts": true,
+    "reloaded_feature_order": true,
+    "platt_identity": true,
+    "probability_sanity": true
+  },
+  "scientific_metrics_calculated": false
+}
