@@ -36,8 +36,8 @@ EQUATIONS={
  'timing': ('The observation boundary',[
  ('Requested tick',eq(sub(mi('τ'),tx('request')),row(sub(mi('τ'),tx('freeze')),mo('+'),tx('round'),par(row(mi('h'),mo('·'),mn(64)))))),
  ('Resolved snapshot',row(sub(mi('τ'),tx('request')),mo('≤'),sub(mi('τ'),tx('resolved')),mo('≤'),sub(mi('τ'),tx('request')),mo('+'),mn(1))),
- ('Before the round ends',row(sub(mi('τ'),tx('obs')),mo('<'),sub(mi('τ'),tx('end')))),
- ('Before any plant',row(tx('no plant event'),mo('∨'),sub(mi('τ'),tx('obs')),mo('<'),sub(mi('τ'),tx('plant'))))
+ ('Before the round ends',row(sub(mi('τ'),tx('resolved')),mo('<'),sub(mi('τ'),tx('end')))),
+ ('Before any plant',row(tx('no plant event'),mo('∨'),sub(mi('τ'),tx('resolved')),mo('<'),sub(mi('τ'),tx('plant'))))
  ], 'h = observation horizon in seconds; the measured demo clock is 64 ticks per second. The resolver uses the first snapshot at or after the request and observed lateness is at most one tick. Both eligibility conditions must hold.'),
  'geometry': ('Formation geometry',[
  ('Team centroid',eq(c,row(frac(mn(1),m),summ(eq(i,mn(1)),m,r_i)))),

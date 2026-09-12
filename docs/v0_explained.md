@@ -73,8 +73,8 @@ requested_tick = freeze_end + horizon_seconds × measured_demo_tickrate
 resolved_tick = first available snapshot at or after requested_tick
 
 Eligible only when:
-  target_tick < round_end_tick
-  and (there is no plant event, or target_tick < plant_tick)
+  resolved_tick < round_end_tick
+  and (there is no plant event, or resolved_tick < plant_tick)
 ```
 
 The strict eligibility inequality is intentional. A snapshot at the plant event is already too late to forecast whether and where the plant will happen. Similarly, an ended round is not an ongoing early-round forecasting opportunity. The corrected resolver selects the first recorded snapshot at or after the requested tick. Across the corrected dataset, this is either exact or one tick late; the resolved tick must still remain before the outcome boundary. The same rule applies to the one-second motion lookup, and the corrected motion interval is a true 1.000 seconds at 64 ticks per second.
@@ -346,7 +346,7 @@ P(A | plant) = P(A) / [P(A) + P(B)]
 P(B | plant) = P(B) / [P(A) + P(B)]
 ```
 
-The corrected plant-versus-no-plant diagnostic has observation-weighted log loss 0.5908, binary Brier 0.2048, accuracy 0.6613, and horizon-weighted F1 0.6894. The A/B diagnostic is evaluated only on the 886 observations whose true label is a plant; its accuracy is 0.7562 and log loss 0.4707. This conditioning uses true outcomes for analysis, not information available to an online predictor.
+The corrected plant-versus-no-plant diagnostic has log loss 0.5908, binary Brier 0.2048, accuracy 0.6613, and F1 0.6892. The A/B diagnostic is evaluated only on the 886 observations whose true label is a plant; its accuracy is 0.7562 and log loss 0.4707. This conditioning uses true outcomes for analysis, not information available to an online predictor.
 
 The 75.62% conditional site accuracy is not the original model's overall accuracy. It excludes all true no-plant observations and asks a different question. Likewise, binary Brier values use a different scoring expression from the three-class summed Brier above and should not be compared as if they measured the same task on the same scale.
 
