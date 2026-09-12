@@ -219,3 +219,41 @@ It may later join a development pool for new hypotheses.
 If it does, it can no longer serve as an untouched final V2 holdout.
 
 A separate D_holdout will be required for final V2 confirmation.
+
+
+---
+
+## Round-Level Timing Exclusion Policy
+
+Amendment frozen before any V0-versus-H2 confirmation scoring.
+
+A demo is not automatically excluded because one or more parsed rounds
+lack usable scientific timing.
+
+The frozen V0 observation pipeline already excludes a round before
+observation generation when any of the following occurs:
+
+- MISSING_FREEZE_END
+- MISSING_ROUND_END
+- INVALID_TIMING_ORDER
+
+Therefore V2 applies the same rule.
+
+If a demo contains otherwise valid rounds and every invalid round is
+excluded by this frozen round-level timing policy, the demo remains
+eligible for confirmation.
+
+The excluded round contributes:
+
+- no prediction observations
+- no model score
+- no label count in the scientific dataset
+
+The exclusion reason and number of excluded rounds must remain recorded
+in the intake audit.
+
+A demo still requires manual review if an unexpected timing failure occurs
+outside these predefined round-level exclusions.
+
+This amendment was made after inspecting technical parser/timing quality
+only and before inspecting any V0 or H2 confirmation performance.

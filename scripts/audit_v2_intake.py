@@ -906,9 +906,34 @@ def main():
                 row["n_invalid_rounds"]
                 > 0
             ):
-                status = (
-                    "review_round_timing"
-                )
+                allowed_reasons = {
+                    "MISSING_FREEZE_END",
+                    "MISSING_ROUND_END",
+                    "INVALID_TIMING_ORDER",
+                }
+
+                observed_reasons = {
+                    item.split(":", 1)[1]
+                    for item in row[
+                        "invalid_round_reasons"
+                    ].split(";")
+                    if item
+                    and ":" in item
+                }
+
+                if (
+                    observed_reasons
+                    and observed_reasons
+                    <= allowed_reasons
+                    and row["n_valid_rounds"] > 0
+                ):
+                    status = (
+                        "eligible_intake_with_round_exclusions"
+                    )
+                else:
+                    status = (
+                        "review_round_timing"
+                    )
 
             elif not row[
                 "metadata_complete"
@@ -988,8 +1013,10 @@ def main():
 
     eligible = (
         audit.filter(
-            pl.col("status")
-            == "eligible_intake"
+            pl.col("status").is_in([
+                "eligible_intake",
+                "eligible_intake_with_round_exclusions",
+            ])
         )
     )
 

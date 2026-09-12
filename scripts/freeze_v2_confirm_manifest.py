@@ -118,8 +118,10 @@ def main():
             )
         )
         .filter(
-            pl.col("status")
-            == "eligible_intake"
+            pl.col("status").is_in([
+                "eligible_intake",
+                "eligible_intake_with_round_exclusions",
+            ])
         )
         .filter(
             pl.col("scientific_role")
