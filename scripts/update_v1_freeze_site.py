@@ -493,6 +493,8 @@ def make_v1_page():
     Understanding V1
   </h1>
 
+  <p><a href="#reading-v1">New: How to Read the V1 Evidence — Lessons 1–3 and 14 concepts ↓</a></p>
+
   <p class="lead">
     A controlled sequence of experiments asked whether
     task structure or longer history could improve the
@@ -1597,6 +1599,8 @@ P(NO) = 1 - q</code></pre>
         +
 
         body.strip()
+
+        + read(ROOT / "docs" / "v1_learning.html")
 
         +
 
