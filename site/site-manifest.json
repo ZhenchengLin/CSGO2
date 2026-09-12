@@ -1,7 +1,7 @@
 {
   "project": "CS2 Tactical Intelligence Lab",
-  "stage": "V0 evaluation frozen; live engineering validated synthetically",
-  "v0_status": "EVALUATION FROZEN \u00b7 REAL GSI VALIDATION NEXT",
+  "stage": "Corrected V0 freeze checkpoint",
+  "v0_status": "TIMING CORRECTED \u00b7 EVIDENCE + RUNTIME FROZEN \u00b7 REAL CAPTURE DEFERRED",
   "pages": [
     "index.html",
     "pages/v0.html",
@@ -22,7 +22,9 @@
     "error analysis",
     "next version"
   ],
-  "selected_model": "XGB-A5",
-  "observation_scope": "Mirage, full observer, 10/20/30/40 seconds after freeze_end",
-  "explanation_chapters": 24
+  "selected_model": "XGB-A5 \u00b7 corrected timing",
+  "observation_scope": "Mirage, full observer, true 10/20/30/40 seconds after freeze_end",
+  "explanation_chapters": 24,
+  "observations": 1686,
+  "measured_tick_rate": 64
 }

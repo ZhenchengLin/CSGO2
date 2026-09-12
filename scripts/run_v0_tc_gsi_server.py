@@ -91,6 +91,21 @@ RAW_DEBUG_PATH = Path(
     "data/interim/v0_last_gsi_payload.json"
 )
 
+CAPTURE_GSI = (
+    os.environ.get(
+        "V0_GSI_CAPTURE",
+        "0",
+    )
+    == "1"
+)
+
+CAPTURE_PATH = Path(
+    os.environ.get(
+        "V0_GSI_CAPTURE_PATH",
+        "data/interim/v0_tc_gsi_capture.jsonl",
+    )
+)
+
 
 adapter = V0GSIAdapter()
 
@@ -275,6 +290,28 @@ class Handler(
                 indent=2,
             )
         )
+
+        if CAPTURE_GSI:
+            CAPTURE_PATH.parent.mkdir(
+                parents=True,
+                exist_ok=True,
+            )
+
+            with CAPTURE_PATH.open(
+                "a",
+                encoding="utf-8",
+            ) as capture_file:
+
+                capture_file.write(
+                    json.dumps({
+                        "received_monotonic_sec":
+                            time.monotonic(),
+
+                        "payload":
+                            payload,
+                    })
+                    + "\n"
+                )
 
         test_timestamp = (
             self.headers.get(

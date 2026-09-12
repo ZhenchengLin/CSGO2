@@ -16,7 +16,9 @@ The project is being developed incrementally, with each version evaluated before
 
 **V0 Status: Offline Development Evaluation Frozen**
 
-V0 has a completed offline development evaluation on 20 Mirage matches and 1,268 eligible observations. XGB-A5 is the selected development baseline: log loss 0.8024, Brier 0.4785, accuracy 62.85%, and macro F1 0.5996. These are grouped out-of-fold development results, not untouched final-test or live-serving results.
+V0 is frozen at a timing-corrected checkpoint on 20 Mirage matches and 1,686 eligible observations. XGB-A5 remains the selected development baseline: log loss 0.838182, Brier 0.503190, accuracy 59.49%, and macro F1 0.566090. These are grouped out-of-fold development results using true 10 / 20 / 30 / 40-second horizons. The earlier 1,268-observation result used a shared 128-tick assumption against a measured 64-tick demo clock and is retained only as superseded historical evidence.
+
+The corrected runtime has exact offline/replay parity across all 1,686 observations, passes synthetic LiveEngine and synthetic GSI HTTP end-to-end checks, and binds inference to the corrected artifact identity. The GSI source contract is documented; real-CS2 machine capture remains deferred.
 
 Read the [complete V0 explanation](docs/v0_explained.md) or the [research website](site/index.html).
 

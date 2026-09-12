@@ -1,4 +1,6 @@
-# V0 Evaluation Summary
+# Historical V0 Evaluation Summary — Superseded
+
+> **Do not use this file as the current V0 scientific record.** This 1,268-observation run inherited Awpy's 128 ticks/s default while the raw demo clock measured 64 ticks/s, so its nominal 10 / 20 / 30 / 40-second horizons were effectively about 20 / 40 / 60 / 80 seconds. It is preserved for auditability. The corrected record is documented in `docs/v0_explained.md` and the `artifacts/v0_tc_*.csv` tables.
 
 ## Task
 

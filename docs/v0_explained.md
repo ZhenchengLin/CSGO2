@@ -2,7 +2,7 @@
 
 V0 is the first version of the CS2 Tactical Intelligence research project: an Early-Round Site Outcome Forecaster. It predicts the eventual recorded plant outcome of an eligible Mirage round from information available before the plant or round end. It returns three probabilities: A plant, B plant, and no plant.
 
-The important result is more than a winning model name. V0 established a way to investigate data, challenge assumptions, compare representations, evaluate uncertainty, and let observed failure modes shape the next question. This chapter explains that reasoning in order. Project-specific numbers come from the frozen local evaluation artifacts; explanatory examples are labeled as illustrations.
+The important result is more than a winning model name. V0 established a way to investigate data, challenge assumptions, compare representations, evaluate uncertainty, and let observed failure modes shape the next question. It also exposed a shared timing bug after an earlier parity test had passed. This chapter is the corrected V0 freeze record. Project-specific numbers come from the timing-corrected local evaluation artifacts; superseded values are retained only where they explain the audit trail.
 
 ## 00 · V0 in one roadmap
 
@@ -10,13 +10,13 @@ V0 asks one narrow question: **from observer-visible Mirage state before a plant
 
 - **01 · Define the target** — Observe at 10 / 20 / 30 / 40 seconds after `freeze_end`; predict `A_PLANT / B_PLANT / NO_PLANT`.
 - **02 · Audit tactical data** — Derive labels from plant events, reconstruct the current bomb state, and block future-information leakage.
-- **03 · Build observations** — 20 demos → 443 valid-timing rounds → 1,268 eligible pre-outcome snapshots.
+- **03 · Correct the clock** — Awpy supplied a default 128 ticks/s while the observed demo clock measured 64 ticks/s. Rebuilding at the measured rate produced 1,686 eligible pre-outcome snapshots.
 - **04 · Engineer the state** — Encode offensive geometry, 1-second motion, combat state, and defense/inter-team structure. Economy was tested and dropped. Final model input: 37 numeric features.
 - **05 · Protect evaluation** — Use 5-fold `StratifiedGroupKFold` by match. Each fold trains on about 16 matches and tests on about 4 unseen matches.
 - **06 · Ablate feature families** — A0 prior → A1 geometry → A2 motion → A3 combat → A4 economy → A5 defense. Compare the same held-out folds using Log Loss, Brier, Accuracy, and Macro F1.
 - **07 · Test nonlinearity** — Logistic Regression establishes the linear baseline. XGBoost tests nonlinear interactions. Defense adds value in XGBoost, making XGB-A5 the selected V0 model.
-- **08 · Freeze the evidence** — OOF XGB-A5: Log Loss 0.8024, Brier 0.4785, Accuracy 0.6285, Macro F1 0.5996. Most errors are Plant ↔ No Plant rather than A ↔ B.
-- **09 · Build the live path** — Demo / Replay / GSI → canonical state → shared FeatureBuilder → predictor. Replay parity is exact across 20 matches and 1,268 observations; synthetic GSI HTTP inference passes at 10 / 20 / 30 / 40 seconds. Real-CS2 GSI source validation is next.
+- **08 · Freeze the corrected evidence** — OOF XGB-A5: Log Loss 0.838182, Brier 0.503190, Accuracy 0.594899, Macro F1 0.566090. Most errors are Plant ↔ No Plant rather than A ↔ B.
+- **09 · Rebuild the live path** — Demo / Replay / GSI → canonical state → shared FeatureBuilder → predictor. Replay parity is exact across 20 matches and all 1,686 observations; synthetic LiveEngine and GSI HTTP end-to-end tests pass. Real-CS2 machine capture is deferred.
 
 **V0 in one sentence:** tactical data engineering turns raw match state into a reproducible 37-feature contract; ML engineering tests which information generalizes; live engineering reuses the same contract without changing the frozen scientific evidence.
 
@@ -58,21 +58,26 @@ An illustrative output is P(A) = 0.55, P(B) = 0.20, and P(NO) = 0.25. The three 
 
 A plant label also does not describe the round winner. A T-side plant followed by a CT defuse is still a plant observation. Conversely, a round can end without a plant for different reasons. Those reasons are compressed into NO_PLANT rather than separately labeled in V0. That deliberately broad class will later become central to the error analysis.
 
-V0 still does not generate tactical recommendations, infer concealed intentions, or evaluate counterfactual actions. Its scientific evidence remains the frozen offline grouped-OOF evaluation, while the engineering path now supports exact historical replay parity and synthetic GSI live inference at the same 10 / 20 / 30 / 40-second checkpoints. Real-CS2 GSI source validation remains pending.
+V0 still does not generate tactical recommendations, infer concealed intentions, or evaluate counterfactual actions. Its scientific evidence is the corrected grouped-OOF evaluation, while the engineering path supports exact historical replay parity and synthetic GSI live inference at the same 10 / 20 / 30 / 40-second checkpoints. The GSI source contract is documented; real-CS2 machine capture remains deferred.
 
-## 03 · Time, eligibility, and the information boundary
+## 03 · Timing correction and the information boundary
 
 Four observation horizons were fixed: 10, 20, 30, and 40 seconds after freeze_end. Freeze end is the point after the pre-round freeze period. Starting the clock there makes the horizons describe playable round time rather than time spent waiting before the round starts.
 
+The first frozen evaluation used Awpy's default 128 ticks per second. An independent timing audit later measured these demos at 64 ticks per second from their raw tick clocks. The arithmetic was internally consistent, so offline/replay parity passed, but the shared assumption was wrong: the nominal 10 / 20 / 30 / 40-second rows actually described approximately 20 / 40 / 60 / 80 seconds of playable time. Parity had proved that two paths agreed; it had not proved that they agreed with the real-world meaning of a second.
+
+That discovery invalidated the old timing-dependent evidence. The old dataset, folds, predictions, and tables were preserved as a historical superseded record. The corrected pass rebuilt the dataset at the measured 64 ticks per second, reused the previously frozen match folds, reran evaluation and diagnostics, rebuilt the runtime artifact, and repeated parity and correctness checks.
+
 ```math timing
-target_tick = freeze_end + horizon_seconds × demo_tickrate
+requested_tick = freeze_end + horizon_seconds × measured_demo_tickrate
+resolved_tick = first available snapshot at or after requested_tick
 
 Eligible only when:
   target_tick < round_end_tick
   and (there is no plant event, or target_tick < plant_tick)
 ```
 
-The strict inequality is intentional. A snapshot at the plant event is already too late to forecast whether and where the plant will happen. Similarly, an ended round is not an ongoing early-round forecasting opportunity. Features must be constructed from state at or before the cutoff, never from a later convenient snapshot or future bomb position. The consolidated offline builder requires an exact player snapshot at the target tick and at the one-second lag tick; it raises an error if either is missing. It does not silently substitute a future snapshot.
+The strict eligibility inequality is intentional. A snapshot at the plant event is already too late to forecast whether and where the plant will happen. Similarly, an ended round is not an ongoing early-round forecasting opportunity. The corrected resolver selects the first recorded snapshot at or after the requested tick. Across the corrected dataset, this is either exact or one tick late; the resolved tick must still remain before the outcome boundary. The same rule applies to the one-second motion lookup, and the corrected motion interval is a true 1.000 seconds at 64 ticks per second.
 
 Consider an illustrative round that plants at 27 seconds and ends at 43 seconds. Its 10-second and 20-second observations are eligible. Its 30-second and 40-second observations are excluded because the plant has already happened. A different round ending without a plant at 18 seconds contributes only a 10-second observation. A round lasting beyond 40 seconds without a plant can contribute all four.
 
@@ -82,19 +87,19 @@ There are two separate audits: within each observation, check the time boundary;
 
 ## 04 · The dataset and why its size needs context
 
-The frozen development dataset contains 20 Mirage demos, 444 parsed rounds, and 443 rounds with valid timing. One partial opening round was excluded. These yield 1,268 eligible observations with zero missing feature values in the constructed dataset.
+The corrected development dataset contains 20 Mirage demos and 1,686 eligible observations with zero missing feature values in the constructed dataset.
 
 | Horizon after freeze end | Eligible observations | Share of all observations |
 | --- | ---: | ---: |
-| 10 seconds | 442 | 34.9% |
-| 20 seconds | 373 | 29.4% |
-| 30 seconds | 270 | 21.3% |
-| 40 seconds | 183 | 14.4% |
-| Total | 1,268 | 100% |
+| 10 seconds | 442 | 26.2% |
+| 20 seconds | 442 | 26.2% |
+| 30 seconds | 429 | 25.4% |
+| 40 seconds | 373 | 22.1% |
+| Total | 1,686 | 100% |
 
-These are 1,268 snapshots, not 1,268 independent matches. Observations from the same round are related, and rounds from the same match share teams, opponents, and match conditions. More rows can help a model fit, but they do not automatically provide the same diversity as more independent matches.
+These are 1,686 snapshots, not 1,686 independent matches. Observations from the same round are related, and rounds from the same match share teams, opponents, and match conditions. More rows can help a model fit, but they do not automatically provide the same diversity as more independent matches.
 
-The overall label counts derived from the confusion matrix are 422 A_PLANT, 223 B_PLANT, and 623 NO_PLANT observations. The imbalance explains why a simplistic majority-class choice can achieve about 49.1% accuracy while doing poorly on the two site classes. It also explains why macro F1 and per-class recall are useful companions to overall accuracy.
+The corrected label counts are 575 A_PLANT, 311 B_PLANT, and 800 NO_PLANT observations. The imbalance explains why a simplistic majority-class choice can achieve about 47.4% accuracy while doing poorly on the two site classes. It also explains why macro F1 and per-class recall are useful companions to overall accuracy.
 
 Later horizons contain a selected population: rounds that have survived without an earlier plant or round end. A better metric at 40 seconds may reflect additional information, a different set of rounds, or both. It cannot be interpreted as a causal improvement obtained by waiting on an identical cohort. An identical-cohort study would require a separately defined comparison.
 
@@ -132,7 +137,7 @@ The selected XGB-A5 model uses 37 inputs:
 
 The family names describe information, while the A0–A5 labels describe experiments. A1 includes horizon plus offensive geometry. A2 adds motion. A3 adds combat. A4 tests economy on top of A3. A5 tests defense on top of A3, not on top of A4. This branching structure is essential for interpreting the experiments.
 
-The runtime architecture keeps raw-source adapters outside a canonical state and shared FeatureBuilder. Historical replay reproduces the frozen feature rows exactly across all 20 development matches and 1,268 observations, and the synthetic GSI HTTP path reaches the same predictor at 10 / 20 / 30 / 40 seconds. Position-derived movement is reconstructed from timestamped positions rather than parser-only velocity fields. This establishes engineering parity inside controlled replay and synthetic tests; it does not yet prove that real CS2 GSI payload semantics and cadence match the design.
+The runtime architecture keeps raw-source adapters outside a canonical state and shared FeatureBuilder. Historical replay reproduces the corrected feature rows exactly across all 20 development matches and 1,686 observations, and the synthetic GSI HTTP path reaches the same predictor at 10 / 20 / 30 / 40 seconds. Position-derived movement is reconstructed from timestamped positions rather than parser-only velocity fields. Runtime metadata binds the selected model to the corrected dataset identity. This establishes engineering parity inside controlled replay and synthetic tests; it does not yet prove that real CS2 GSI payload semantics and cadence match the design.
 
 ## 07 · Geometry: where the team is and what shape it makes
 
@@ -152,19 +157,19 @@ The convex hull is a geometric envelope, not literal controlled territory. It ca
 
 A useful debugging surprise was zero spread or area. A single surviving player has zero pairwise spread, and fewer than three non-collinear players cannot form a positive-area polygon. The audited zero-spread observations had only one T alive. The arithmetic was valid; the interpretation “a tightly coordinated team” would have been wrong. Geometry needed survival context.
 
-The geometry ablation reduced log loss from 1.0240 for the class prior to 0.9161 for logistic A1. This establishes predictive value in the development comparison. It does not show that every individual geometry column is independently useful or that the representation is optimal.
+The corrected geometry ablation reduced log loss from 1.036019 for the class prior to 0.947481 for logistic A1. This establishes predictive value in the development comparison. It does not show that every individual geometry column is independently useful or that the representation is optimal.
 
 ## 08 · Motion, combat, economy, and defense
 
 Motion adds four inputs: average T speed over the one-second window, T centroid x/y velocity over that window, and bomb speed. Movement direction can distinguish similarly located groups that are approaching or leaving an area. The builder matches currently alive T players to their previous positions by identity and checks that the required prior states are present. Using the same player identities at both times prevents a casualty alone from appearing as centroid movement.
 
-The motion addition was a weak overall positive in the linear model: log loss moved from 0.9161 to 0.9119. That small aggregate difference and horizon variation support cautious interpretation. V0 does not establish that a long sequence model would add value merely because a short movement summary helped a little.
+The corrected motion addition was a weak overall positive in the linear model: log loss moved from 0.947481 to 0.942335. That small aggregate difference and horizon variation support cautious interpretation. V0 does not establish that a long sequence model would add value merely because a short movement summary helped a little.
 
 Combat adds T and CT alive counts plus their difference, health sums plus their difference, and armor sums plus their difference. These nine variables explain whether a spatial pattern belongs to five healthy attackers or one damaged survivor. They also provide context for whether an attempted site approach is likely to survive long enough to produce a plant.
 
-Combat was the strongest incremental linear addition: log loss improved from 0.9119 to 0.8359, with improvement at every evaluated horizon. CT health and armor are already used here. Full-observer requirements therefore begin before the explicit defense family is added.
+Combat was the strongest incremental linear addition: log loss improved from 0.942335 to 0.887596. CT health and armor are already used here. Full-observer requirements therefore begin before the explicit defense family is added.
 
-Economy tests the sum of current equipment values for each side and their difference. It is a reasonable hypothesis that remaining equipment captures combat capability. It is not the same as a complete buy-round model, original purchase value, or future spending power. Adding these columns worsened logistic log loss to 0.8509 and XGBoost log loss from 0.8157 to 0.8274. The selected V0 excludes them.
+Economy tests the sum of current equipment values for each side and their difference. It is a reasonable hypothesis that remaining equipment captures combat capability. It is not the same as a complete buy-round model, original purchase value, or future spending power. Adding these columns worsened logistic log loss to 0.895020 and XGBoost log loss from 0.857756 to 0.873736. The selected V0 excludes them.
 
 Defense adds CT centroid x/y/z, stretch, x/y ranges, pairwise distance, hull area, T–CT centroid distance, minimum opponent distance, and mean nearest-opponent distance. These extend the question from “where are the attackers?” to “how do the two formations relate?” They still do not encode exact sight lines, utility effects, or tactical semantics.
 
@@ -232,12 +237,12 @@ The scores are linear in the selected inputs. The final probabilities are nonlin
 
 | Stage | Information set | Log loss ↓ | Brier ↓ | Accuracy ↑ | Macro F1 ↑ |
 | --- | --- | ---: | ---: | ---: | ---: |
-| A0 | Training class prior | 1.0240 | 0.6186 | 0.4913 | 0.2196 |
-| A1 | Horizon + offensive geometry | 0.9161 | 0.5675 | 0.5142 | 0.4628 |
-| A2 | A1 + motion | 0.9119 | 0.5612 | 0.5347 | 0.4823 |
-| A3 | A2 + combat | 0.8359 | 0.4939 | 0.5994 | 0.5541 |
-| A4 | A3 + economy | 0.8509 | 0.5011 | 0.5986 | 0.5495 |
-| A5 | A3 + defense, no economy | 0.8408 | 0.4954 | 0.6151 | 0.5687 |
+| A0 | Training class prior | 1.036019 | 0.626851 | 0.474496 | 0.214535 |
+| A1 | Horizon + offensive geometry | 0.947481 | 0.587778 | 0.496441 | 0.439914 |
+| A2 | A1 + motion | 0.942335 | 0.584192 | 0.510083 | 0.454863 |
+| A3 | A2 + combat | 0.887596 | 0.529669 | 0.575326 | 0.537563 |
+| A4 | A3 + economy | 0.895020 | 0.532146 | 0.577106 | 0.537132 |
+| A5 | A3 + defense, no economy | 0.896782 | 0.531202 | 0.577699 | 0.538807 |
 
 This is an information experiment as much as a model contest. Geometry earns a place, motion provides a small positive, and combat makes another substantial contribution. Economy is not retained simply because its hypothesis sounds sensible. Defense creates a question because classification improves while the primary probability metrics become slightly worse.
 
@@ -285,32 +290,33 @@ The lack of a large search matters because there are only 20 matches. Repeatedly
 
 | Model | Inputs | Log loss ↓ | Brier ↓ | Accuracy ↑ | Macro F1 ↑ |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Logistic A3 | 26 | 0.8359 | 0.4939 | 0.5994 | 0.5541 |
-| XGB-A3 | 26 | 0.8157 | 0.4880 | 0.6167 | 0.5876 |
-| XGB-A4 | 29 | 0.8274 | 0.4958 | 0.6080 | 0.5786 |
-| XGB-A5 | 37 | 0.8024 | 0.4785 | 0.6285 | 0.5996 |
+| Logistic A3 | 26 | 0.887596 | 0.529669 | 0.575326 | 0.537563 |
+| XGB-A3 | 26 | 0.857756 | 0.516930 | 0.584816 | 0.556304 |
+| XGB-A4 | 29 | 0.873736 | 0.524943 | 0.584223 | 0.552078 |
+| XGB-A5 | 37 | 0.838182 | 0.503190 | 0.594899 | 0.566090 |
 
-The A3-to-A3 comparison isolates the change in model family while keeping the information set fixed. XGBoost improves log loss from 0.8359 to 0.8157. The XGB-A3-to-XGB-A5 comparison then isolates adding defense within the nonlinear model, improving log loss to 0.8024. Defense improved XGBoost at every tested horizon in the frozen analysis.
+The A3-to-A3 comparison isolates the change in model family while keeping the information set fixed. XGBoost improves log loss from 0.887596 to 0.857756. The XGB-A3-to-XGB-A5 comparison then isolates adding defense within the nonlinear model, improving log loss to 0.838182. Defense adds little linear value but meaningful nonlinear value in XGBoost.
 
 XGB-A4 worsens probability quality relative to XGB-A3, so the economy hypothesis did not recover under this nonlinear baseline. XGB-A5 branches from A3 and excludes economy. Describing A5 as “all available features” would misrepresent the experiment.
 
 The frozen selection is XGB-A5: the best development baseline among these comparisons, with offensive geometry, motion, combat, defense, and horizon. This supports the hypothesis that defensive information contains useful nonlinear or interaction-dependent structure. It does not identify a causal defensive mechanism, prove every defense column is necessary, or establish superiority on all unseen populations.
 
+The earlier 128-tick interpretation is retained for research traceability and must not be compared as if it measured the corrected 10 / 20 / 30 / 40-second task:
+
+| Evidence version | Observations | Effective horizons | XGB-A5 Log loss | Status |
+| --- | ---: | --- | ---: | --- |
+| Historical timing v1 | 1,268 | approximately 20 / 40 / 60 / 80 seconds | 0.8024 | Superseded by timing audit |
+| Corrected V0 freeze | 1,686 | 10 / 20 / 30 / 40 seconds | 0.838182 | Current scientific record |
+
+The corrected score is numerically worse, but it answers the intended earlier-round question. The audit did not revise the evidence to make the model look better; it revised the evidence so that the stated horizons match the observed demo clock.
+
 ## 16 · Calibration: useful confidence with a visible weak spot
 
-Top-label calibration compares the model's maximum probability with whether its chosen class was correct. The analysis uses confidence bins and a count-weighted expected calibration error (ECE). XGB-A5's overall top-label ECE is 0.0454, with classwise ECE of 0.0565 for A, 0.0354 for B, and 0.0432 for no plant.
+Top-label calibration compares the model's maximum probability with whether its chosen class was correct. The analysis uses confidence bins and a count-weighted expected calibration error (ECE). Corrected XGB-A5's overall top-label ECE is 0.0509, with classwise ECE of 0.0475 for A, 0.0182 for B, and 0.0440 for no plant.
 
-The average hides a clear weakness: in the 0.6–0.7 confidence bin, 225 observations had mean confidence about 0.646 but observed accuracy about 0.524. That is an approximately 12.2 percentage-point overconfidence gap. The 30-second horizon also has the largest top-label ECE, about 0.0853.
+The average hides local weaknesses. In the 0.7–0.8 top-confidence bin, 213 observations had mean confidence about 0.747 but observed accuracy about 0.648, an approximately 9.9 percentage-point overconfidence gap. Horizon-level top-label ECE is 0.0404, 0.0456, 0.0607, and 0.0624 at 10, 20, 30, and 40 seconds respectively.
 
-| Minimum model confidence | Accuracy among selected predictions |
-| --- | ---: |
-| At least 0.50 | 66.8% |
-| At least 0.60 | 72.7% |
-| At least 0.70 | 81.2% |
-| At least 0.80 | 88.6% |
-| At least 0.90 | 94.9% |
-
-These are nested, selected subsets. “94.9% accurate at confidence ≥0.90” describes 157 high-confidence observations, not the entire 1,268-observation dataset. Raising a threshold changes coverage, and the retained situations may be systematically easier. A deployable abstention or alerting policy would need explicit coverage, operating costs, and fresh-data validation.
+The 153 observations in the 0.9–1.0 top-confidence bin had mean confidence 0.935 and observed accuracy 0.948. This is a selected subset, not the entire 1,686-observation dataset. A deployable abstention or alerting policy would need explicit coverage, operating costs, and fresh-data validation.
 
 No post-hoc calibration method is demonstrated by these numbers. This is an assessment of the baseline's probability behavior. ECE depends on binning and sample composition and is not a universal probability guarantee. The evidence supports inspecting confidence, not presenting all displayed probabilities as deployment-calibrated truth.
 
@@ -320,13 +326,13 @@ The confusion matrix records true labels in rows and predicted labels in columns
 
 | True outcome → predicted outcome | A_PLANT | B_PLANT | NO_PLANT |
 | --- | ---: | ---: | ---: |
-| A_PLANT | 241 | 32 | 149 |
-| B_PLANT | 35 | 107 | 81 |
-| NO_PLANT | 130 | 44 | 449 |
+| A_PLANT | 305 | 45 | 225 |
+| B_PLANT | 63 | 135 | 113 |
+| NO_PLANT | 181 | 56 | 563 |
 
-The diagonal contains 797 correct predictions; the off-diagonal contains 471 errors. Direct site swaps are 32 + 35 = 67. Plant/no-plant boundary errors are 149 + 81 + 130 + 44 = 404. Therefore, 404 / 471 = 85.8% of classification errors cross the plant-occurrence boundary, while 14.2% directly confuse A with B.
+The diagonal contains 1,003 correct predictions; the off-diagonal contains 683 errors. Direct site swaps are 45 + 63 = 108. Plant/no-plant boundary errors are 225 + 113 + 181 + 56 = 575. Therefore, 575 / 683 = 84.2% of classification errors cross the plant-occurrence boundary, while 15.8% directly confuse A with B.
 
-Per-class recall is 57.11% for A, 47.98% for B, and 72.07% for no plant. The lower B recall is important even though B is the smallest class. Overall accuracy by itself would obscure that weakness.
+Per-class recall is 53.04% for A, 43.41% for B, and 70.38% for no plant. The lower B recall is important even though B is the smallest class. Overall accuracy by itself would obscure that weakness.
 
 This error grouping changes the next research question. It suggests that predicting whether a plant will happen is a larger difficulty than choosing the site once a plant is known to occur. That is an observed structure in V0's failures, not a proof that a particular replacement architecture must improve them.
 
@@ -340,11 +346,11 @@ P(A | plant) = P(A) / [P(A) + P(B)]
 P(B | plant) = P(B) / [P(A) + P(B)]
 ```
 
-The plant-versus-no-plant diagnostic has log loss 0.5740, binary Brier 0.1978, accuracy 0.6909, and F1 0.7066. The A/B diagnostic is evaluated only on the 645 observations whose true label is a plant; its accuracy is 0.7845 and log loss 0.4490. This conditioning uses true outcomes for analysis, not information available to an online predictor.
+The corrected plant-versus-no-plant diagnostic has observation-weighted log loss 0.5908, binary Brier 0.2048, accuracy 0.6613, and horizon-weighted F1 0.6894. The A/B diagnostic is evaluated only on the 886 observations whose true label is a plant; its accuracy is 0.7562 and log loss 0.4707. This conditioning uses true outcomes for analysis, not information available to an online predictor.
 
-The 78.45% conditional site accuracy is not the original model's overall accuracy. It excludes all true no-plant observations and asks a different question. Likewise, binary Brier values use a different scoring expression from the three-class summed Brier above and should not be compared as if they measured the same task on the same scale.
+The 75.62% conditional site accuracy is not the original model's overall accuracy. It excludes all true no-plant observations and asks a different question. Likewise, binary Brier values use a different scoring expression from the three-class summed Brier above and should not be compared as if they measured the same task on the same scale.
 
-Conditional site accuracy is 76.5%, 77.4%, 80.5%, and 83.0% across 10, 20, 30, and 40 seconds. The shrinking eligible populations still apply. These values do not establish a within-round causal improvement from waiting.
+Conditional site accuracy is 72.65%, 77.35%, 74.56%, and 78.42% across 10, 20, 30, and 40 seconds. The shrinking eligible populations still apply. These values do not establish a within-round causal improvement from waiting.
 
 This decomposition is diagnostic. No separately trained hierarchical model is being evaluated here. It exposes where the present three-class model's information is useful and where its task may benefit from a more focused treatment.
 
@@ -356,34 +362,34 @@ The experiment repeats 20 times, permuting within each held-out fold. The report
 
 | Shuffled family | Change in three-class log loss |
 | --- | ---: |
-| Offensive geometry | +0.2806 |
-| Combat | +0.2315 |
-| Defense | +0.0274 |
-| Motion | +0.0112 |
-| Horizon | −0.0002 |
+| Offensive geometry | +0.2712 |
+| Combat | +0.1876 |
+| Defense | +0.0348 |
+| Motion | +0.0111 |
+| Horizon | approximately 0 |
 
 These numbers are not percentages, do not sum to 100%, and should not be added into a total contribution. Correlation and redundancy mean that one family can substitute for another. Shuffling can also create combinations unlike real game states, so the result describes sensitivity of this fitted predictor to that perturbation, not a causal effect of moving players or changing health.
 
-Task-specific importance sharpens the interpretation. For plant versus no plant, shuffling combat increases log loss by 0.2287, compared with 0.0287 for offensive geometry. For A versus B given a true plant, shuffling offensive geometry increases log loss by 0.4953, compared with 0.0056 for combat. This supports the separation between plant feasibility and site choice.
+Task-specific importance sharpens the interpretation. For plant versus no plant, shuffling combat increases log loss by 0.1906, compared with 0.0298 for offensive geometry. For A versus B given a true plant, shuffling offensive geometry increases log loss by 0.4593, while combat is approximately neutral at −0.0056. The strongest scientific story is therefore consistent and specific: combat dominates plant feasibility; offensive geometry dominates conditional site choice.
 
 The near-zero horizon permutation result does not prove that time is irrelevant to Counter-Strike. Other state features can encode progression indirectly, and the explicit horizon may add little once those are known in this model and dataset. Retaining a frozen contract and testing a targeted simplification on fresh evidence are separate decisions.
 
 ## 20 · Robustness, uncertainty, and the decision to freeze
 
-An aggregate score can improve because of a few unusually favorable matches. The robustness analysis therefore compares XGB-A5 with Logistic-A3 separately for each held-out match. XGB-A5 wins on log loss for 13 of 20 matches and on Brier for 13 of 20. Seven matches still regress on each metric.
+An aggregate score can improve because of a few unusually favorable matches. The robustness analysis therefore compares XGB-A5 with Logistic-A3 separately for each held-out match. Corrected XGB-A5 wins on log loss for 14 of 20 matches and on Brier for 16 of 20.
 
-The equal-match mean log-loss delta is −0.0401 and the median is −0.0285, where delta means XGB-A5 minus Logistic-A3. The negative median shows that the improvement is not explained solely by one exceptionally favorable match. It does not remove the practical significance of the regressions.
+The equal-match mean log-loss delta is −0.0568 and the median is −0.0206, where delta means XGB-A5 minus Logistic-A3. The negative median shows that the improvement is not explained solely by one exceptionally favorable match. It does not remove the practical significance of the regressions.
 
-There are two different averages here. The headline pooled observation-level difference is approximately 0.8024 − 0.8359 = −0.0336. The robustness mean is −0.0401 because it averages match deltas equally instead of giving matches with more eligible observations greater weight. Both are valid summaries of different estimands.
+There are two different averages here. The headline pooled observation-level difference is approximately 0.838182 − 0.887596 = −0.049414. The robustness mean is −0.0568 because it averages match deltas equally instead of giving matches with more eligible observations greater weight. Both are valid summaries of different estimands.
 
 A paired match-level bootstrap resamples the 20 match comparisons with replacement 100,000 times. Each resample preserves the model comparison within a match and averages the selected match deltas. The 2.5th and 97.5th percentiles provide the reported interval.
 
 | Metric | Mean match delta | 95% bootstrap interval | Resamples with delta below zero |
 | --- | ---: | --- | ---: |
-| Log loss | −0.0401 | [−0.0844, −0.0034] | 0.9855 |
-| Brier | −0.0160 | [−0.0355, +0.0024] | 0.9550 |
+| Log loss | −0.0568 | [−0.1073, −0.0191] | 0.99984 |
+| Brier | −0.0272 | [−0.0422, −0.0134] | 0.99999 |
 
-The log-loss interval remains below zero, so its directional evidence is stronger in this analysis. The Brier interval crosses zero. The bootstrap fractions are empirical resampling summaries, not posterior probabilities that the model is universally better and not final confirmatory significance tests after selection.
+Both corrected intervals remain below zero. The bootstrap fractions are empirical resampling summaries, not posterior probabilities that the model is universally better and not final confirmatory significance tests after selection.
 
 Twenty matches remain a small development sample, potentially with recurring teams and shared competitive context. Bootstrapping that sample does not create genuinely new matches, eliminate selection effects, or solve distribution shift. V0 freezes the evaluation so future work cannot repeatedly optimize these results and later present them as an unbiased final test.
 
@@ -394,13 +400,13 @@ V0's offline feature construction, baseline comparisons, and development analyse
 The main boundaries are:
 
 - One map and a limited match population. Generalization to other maps, levels of play, teams, or future game changes is not established.
-- Correlated observations. The dataset has 20 match groups, not 1,268 independent tactical experiments.
+- Correlated observations. The dataset has 20 match groups, not 1,686 independent tactical experiments.
 - Full observer inputs. CT location, health, armor, and survival features are not all normal player-view information. A partial-observation model needs a different contract and evaluation.
 - Outcome rather than intention. The labels identify recorded plant outcomes, not tactical plans, round winners, or the quality of a chosen strategy.
 - Simplified representation. Euclidean formations do not capture sight lines, map navigation, utility semantics, communication, or every relevant tactical interaction.
 - Development selection. Feature and model choices used the same OOF evidence. There is no untouched final-test result in the frozen summary.
-- Imperfect calibration and class performance. Mid-confidence overconfidence, 30-second calibration weakness, and lower B recall remain visible.
-- Serving work remains. No demonstrated online latency, replay parity, observer-feed parity, production monitoring, or deployable model service follows from the offline scores.
+- Imperfect calibration and class performance. Mid-confidence overconfidence, higher later-horizon ECE, and lower B recall remain visible.
+- Serving boundary. Replay parity, the synthetic LiveEngine, synthetic GSI HTTP end-to-end inference, and runtime artifact identity are demonstrated. Real-CS2 machine capture, observer-feed validation, production monitoring, and deployment remain outside the V0 claim.
 
 The website documents these findings. Its deployment is a publication of the research record, not a deployment of the prediction model. There is no simulated live predictor masquerading as an operational system.
 
@@ -417,11 +423,11 @@ P(B) = q × (1 − r)
 P(NO_PLANT) = 1 − q
 ```
 
-This is a V1 hypothesis, not an implemented improvement. The diagnostic decomposition of V0 does not prove that separately training two models will perform better. Separate stages can introduce their own estimation errors, and selecting a conditional training population requires care. The original three-class XGB-A5 remains the comparison baseline.
+This is an evidence-derived V1 hypothesis, not an implemented improvement. The corrected diagnostic decomposition and task-specific permutation results give it a concrete basis: combat dominates Plant versus No Plant, while offensive geometry dominates A versus B conditional on a plant. They do not prove that separately training two models will perform better. Separate stages can introduce their own estimation errors, and selecting a conditional training population requires care. The corrected three-class XGB-A5 remains the comparison baseline.
 
 A useful next experiment would freeze the new hypothesis and evaluation plan, obtain untouched matches or use an appropriate nested design, compare probability metrics under the same observation contract, inspect calibration and per-class outcomes, and revisit match-level robustness. The proposed architecture should improve the actual three-class forecasting task, not only a conditional metric that excludes hard examples.
 
-Replay and serving parity are another clear engineering direction. Historical states should pass through the same feature and inference path intended for online use, with explicit timing, missingness, and latency checks. These are related to the eventual product, but they should not be confused with evidence that the hierarchical model is better.
+Replay and synthetic serving parity are complete V0 engineering milestones: all 1,686 offline observations match replay exactly; the synthetic LiveEngine and synthetic GSI HTTP path reach the corrected runtime artifact; and motion windows resolve to a true 1.000 seconds. Real-CS2 machine capture remains a separate future validation step and should not be confused with evidence that the hierarchical model is better.
 
 Longer-term ideas such as opponent modeling, historical retrieval, tactical concepts, transcript-assisted labeling, utility knowledge, and counter-strategy evaluation remain distinct research tracks. V0's contribution is a defensible starting point and a disciplined way to decide what deserves investigation next.
 

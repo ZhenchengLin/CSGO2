@@ -75,7 +75,7 @@ article,sections=render(markdown.replace("(../site/pages/evidence.html)", "(evid
 title='Understanding V0'
 lead='The complete design story: what we predicted, how we investigated the data, why each model decision followed, and what the evidence actually supports.'
 nav='<aside class="chapter-nav" aria-label="On this page"><strong>Inside this chapter</strong><div class="read-progress" aria-hidden="true"><i></i></div>'+''.join(f'<a href="#{ident}">{num} · {inline(name)}</a>' for ident,num,name in sections)+'</aside>'
-body=f'<header class="hero"><div class="kicker">Version 0 / The complete explanation</div><h1>Understanding V0</h1><p class="lead">{lead}</p><div class="badges"><span class="badge ok">Development evaluation frozen</span><span class="badge">{len(sections)} chapters</span><span class="badge ok">Live path: synthetic E2E passed</span></div></header><div class="page-note">Read in order for the complete reasoning, or jump to a chapter. <a href="../assets/sources/v0_explained.md" download>Download the full guide ↓</a> · <a href="evidence.html">Open the evidence tables ↗</a></div><div class="reading-layout"><article class="article">{article}</article>{nav}</div>'
+body=f'<header class="hero"><div class="kicker">Version 0 / The corrected explanation</div><h1>Understanding V0</h1><p class="lead">{lead}</p><div class="badges"><span class="badge ok">Timing-corrected evidence frozen</span><span class="badge">{len(sections)} chapters</span><span class="badge ok">Replay + synthetic E2E passed</span></div></header><div class="page-note">Read in order for the complete reasoning, or jump to a chapter. <a href="../assets/sources/v0_explained.md" download>Download the full guide ↓</a> · <a href="evidence.html">Open the evidence tables ↗</a></div><div class="reading-layout"><article class="article">{article}</article>{nav}</div>'
 template=(SITE/'pages/models.html').read_text()
 template=re.sub(r'<title>.*?</title>',f'<title>{title} — CS2 Tactical Intelligence Lab</title>',template)
 template=re.sub(r'<meta name="description" content="[^"]*">','<meta name="description" content="'+lead+'">',template)
@@ -89,10 +89,14 @@ end=template.index('<footer class="footer">',start)
 (SITE/'assets/sources').mkdir(parents=True,exist_ok=True)
 for name in ['v0_explained.md','v0_evaluation_summary.md','v0_feature_candidate_matrix.md','v0_feature_evidence.md']:
     shutil.copyfile(ROOT/'docs'/name,SITE/'assets/sources'/name)
-(SITE/'assets/data').mkdir(parents=True,exist_ok=True)
+(SITE/'assets/data/corrected').mkdir(parents=True,exist_ok=True)
+(SITE/'assets/data/historical').mkdir(parents=True,exist_ok=True)
+for source in sorted((ROOT/'artifacts').glob('v0_tc_*.csv')):
+    shutil.copyfile(source,SITE/'assets/data/corrected'/source.name)
 for source in sorted((ROOT/'artifacts').glob('v0_*.csv')):
-    shutil.copyfile(source,SITE/'assets/data'/source.name)
+    if not source.name.startswith('v0_tc_'):
+        shutil.copyfile(source,SITE/'assets/data/historical'/source.name)
 manifest=json.loads((SITE/'site-manifest.json').read_text())
-manifest.update(stage='V0 evaluation frozen; live engineering validated synthetically',v0_status='EVALUATION FROZEN · REAL GSI VALIDATION NEXT',selected_model='XGB-A5',observation_scope='Mirage, full observer, 10/20/30/40 seconds after freeze_end',pages=['index.html']+['pages/'+p+'.html' for p in ['v0','evidence','models','data','roadmap','decisions','research','build-log','journey']],explanation_chapters=len(sections))
+manifest.update(stage='Corrected V0 freeze checkpoint',v0_status='TIMING CORRECTED · EVIDENCE + RUNTIME FROZEN · REAL CAPTURE DEFERRED',selected_model='XGB-A5 · corrected timing',observation_scope='Mirage, full observer, true 10/20/30/40 seconds after freeze_end',observations=1686,measured_tick_rate=64,pages=['index.html']+['pages/'+p+'.html' for p in ['v0','evidence','models','data','roadmap','decisions','research','build-log','journey']],explanation_chapters=len(sections))
 (SITE/'site-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
 print(f'Rendered {len(sections)} V0 chapters ({len(markdown.split()):,} words) and copied frozen evidence.')

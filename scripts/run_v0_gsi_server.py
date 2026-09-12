@@ -68,6 +68,21 @@ LOG_FRAMES = (
     == "1"
 )
 
+CAPTURE_GSI = (
+    os.environ.get(
+        "V0_GSI_CAPTURE",
+        "0",
+    )
+    == "1"
+)
+
+CAPTURE_PATH = Path(
+    os.environ.get(
+        "V0_GSI_CAPTURE_PATH",
+        "data/interim/v0_gsi_capture.jsonl",
+    )
+)
+
 RAW_DEBUG_PATH = Path(
     "data/interim/v0_last_gsi_payload.json"
 )
@@ -170,6 +185,10 @@ class Handler(
 
             return
 
+        received_monotonic_sec = (
+            time.monotonic()
+        )
+
         content_length = int(
             self.headers.get(
                 "Content-Length",
@@ -239,8 +258,48 @@ class Handler(
 
         else:
             timestamp_sec = (
-                time.monotonic()
+                received_monotonic_sec
             )
+
+        # ------------------------------------------
+        # Optional raw-source capture.
+        #
+        # IMPORTANT:
+        # Capture happens BEFORE V0GSIAdapter.
+        # This preserves malformed/incomplete payloads
+        # for later source auditing.
+        # ------------------------------------------
+
+        if CAPTURE_GSI:
+
+            CAPTURE_PATH.parent.mkdir(
+                parents=True,
+                exist_ok=True,
+            )
+
+            record = {
+                "received_monotonic_sec":
+                    received_monotonic_sec,
+
+                "frame_timestamp_sec":
+                    timestamp_sec,
+
+                "payload":
+                    payload,
+            }
+
+            with CAPTURE_PATH.open(
+                "a",
+                encoding="utf-8",
+            ) as capture_file:
+
+                capture_file.write(
+                    json.dumps(
+                        record,
+                        separators=(",", ":"),
+                    )
+                    + "\n"
+                )
 
         try:
 
