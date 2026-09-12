@@ -1,0 +1,956 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="A controlled sequence of hierarchical, calibration, robustness, and temporal experiments. H2 was promising, but V0 remains the selected development baseline."><meta name="theme-color" content="#142623"><title>Understanding V1 — CS2 Tactical Intelligence Lab</title><link rel="stylesheet" href="../assets/style.css?v=v1-science-freeze"></head>
+<body data-page="v1"><a class="skip-link" href="#main">Skip to content</a><div class="shell"><aside class="side" id="site-navigation" aria-label="Lab navigation"><a class="brand" href="../index.html"><span class="mark">cti<span>↗</span></span><span><small>Independent research</small><strong>CS2 Tactical<br>Intelligence Lab</strong></span></a><div class="nav-label">The research notebook</div><nav class="nav"><a data-page="home" href="../index.html"><span>01</span>Overview</a><a data-page="v0" href="../pages/v0.html"><span>02</span>Understanding V0</a><a data-page="v1" href="../pages/v1.html" class="active" aria-current="page"><span>03</span>Understanding V1</a><a data-page="evidence" href="../pages/evidence.html"><span>04</span>Results & evidence</a><a data-page="models" href="../pages/models.html"><span>05</span>Models</a><a data-page="data" href="../pages/data.html"><span>06</span>Data & pipeline</a><a data-page="roadmap" href="../pages/roadmap.html"><span>07</span>Roadmap</a><a data-page="decisions" href="../pages/decisions.html"><span>08</span>Design decisions</a><a data-page="research" href="../pages/research.html"><span>09</span>Research horizons</a><a data-page="build-log" href="../pages/build-log.html"><span>10</span>Build log</a><a data-page="journey" href="../pages/journey.html"><span>11</span>The journey</a></nav><div class="side-bottom"><div class="status"><i class="dot"></i>V1 · Science frozen</div><p>Observe. Test. Understand.<br>Let evidence lead the next version.</p><span class="edition">RESEARCH SERIES / 001</span></div></aside><div class="menu-backdrop" hidden></div><main class="main" id="main"><div class="top"><button class="menu" aria-controls="site-navigation" aria-expanded="false" aria-label="Open navigation">☰ <span>Menu</span></button><span class="breadcrumb">The notebook <span>/</span> Understanding V1</span> Models</span><span class="top-meta">MIRAGE <span>·</span> V1 SCIENCE FREEZE</span> VERSION 0</span></div><div class="content">
+<header class="hero">
+
+  <div class="kicker">
+    V1 scientific freeze
+  </div>
+
+  <h1>
+    Understanding V1
+  </h1>
+
+  <p class="lead">
+    A controlled sequence of experiments asked whether
+    task structure or longer history could improve the
+    timing-corrected V0 forecast. The answer was
+    scientifically useful but mixed: H2 slightly improved
+    pooled probability metrics, yet not robustly enough
+    to replace V0.
+  </p>
+
+  <div class="badges">
+
+    <span class="badge ok">
+      Scientific side frozen
+    </span>
+
+    <span class="badge">
+      20 development matches
+    </span>
+
+    <span class="badge warn">
+      V0 remains selected
+    </span>
+
+  </div>
+
+</header>
+
+
+<div class="research-board">
+
+  <div class="board-story">
+
+    <div class="kicker">
+      Final V1 decision
+    </div>
+
+    <h2>
+      Better pooled probability quality
+      was not enough.
+    </h2>
+
+    <p>
+      H2 reached the lowest pooled OOF log loss,
+      but the gain over V0 was tiny, only 9 of 20
+      matches improved on log loss, and the equal-match
+      bootstrap interval crossed zero.
+    </p>
+
+    <div class="outcomes">
+
+      <span class="outcome">
+        V0 SELECTED
+      </span>
+
+      <span class="outcome">
+        H2 PRESERVED
+      </span>
+
+      <span class="outcome">
+        T0 REJECTED
+      </span>
+
+    </div>
+
+  </div>
+
+
+  <div class="board-metrics">
+
+    <div class="metric">
+
+      <span>
+        Selected V0 LL ↓
+      </span>
+
+      <strong>
+        0.838182
+      </strong>
+
+      <small>
+        XGB-A5
+      </small>
+
+    </div>
+
+
+    <div class="metric">
+
+      <span>
+        Best pooled V1 LL ↓
+      </span>
+
+      <strong>
+        0.837397
+      </strong>
+
+      <small>
+        H2, not promoted
+      </small>
+
+    </div>
+
+
+    <div class="metric">
+
+      <span>
+        H2 LL match wins
+      </span>
+
+      <strong>
+        9/20
+      </strong>
+
+      <small>
+        Weak robustness
+      </small>
+
+    </div>
+
+
+    <div class="metric">
+
+      <span>
+        T0 LL ↓
+      </span>
+
+      <strong>
+        0.844859
+      </strong>
+
+      <small>
+        Temporal baseline lost
+      </small>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<section class="section">
+
+  <div class="section-head">
+
+    <h2>
+      The V1 experiment chain
+    </h2>
+
+    <p>
+      Each step changed one motivated part of the system,
+      then stopped when the evidence gate failed.
+    </p>
+
+  </div>
+
+
+  <div class="flow">
+
+    <div class="node">
+      <b>V0</b>
+      <br>
+      corrected baseline
+    </div>
+
+    <span class="arrow">
+      →
+    </span>
+
+    <div class="node">
+      <b>H0</b>
+      <br>
+      hierarchy only
+    </div>
+
+    <span class="arrow">
+      →
+    </span>
+
+    <div class="node">
+      <b>H1</b>
+      <br>
+      specialized heads
+    </div>
+
+    <span class="arrow">
+      →
+    </span>
+
+    <div class="node">
+      <b>H2</b>
+      <br>
+      nested calibration
+    </div>
+
+    <span class="arrow">
+      →
+    </span>
+
+    <div class="node">
+      <b>Robustness</b>
+      <br>
+      match bootstrap
+    </div>
+
+    <span class="arrow">
+      →
+    </span>
+
+    <div class="node">
+      <b>T0</b>
+      <br>
+      3s / 5s history
+    </div>
+
+    <span class="arrow">
+      →
+    </span>
+
+    <div class="node">
+      <b>Freeze</b>
+      <br>
+      V0 retained
+    </div>
+
+  </div>
+
+</section>
+
+
+<section class="section">
+
+  <div class="section-head">
+
+    <h2>
+      The hierarchy hypothesis
+    </h2>
+
+    <p>
+      Split plant feasibility from site choice,
+      then compose a valid three-class forecast.
+    </p>
+
+  </div>
+
+
+  <div class="grid">
+
+    <article class="card half">
+
+      <div class="stat-label">
+        Head 1
+      </div>
+
+      <h3>
+        Plant feasibility
+      </h3>
+
+      <p>
+        <code>q = P(Plant | X)</code>
+        <br>
+        H1 uses geometry + motion + combat + defense,
+        36 features.
+      </p>
+
+    </article>
+
+
+    <article class="card half">
+
+      <div class="stat-label">
+        Head 2
+      </div>
+
+      <h3>
+        Conditional site choice
+      </h3>
+
+      <p>
+        <code>r = P(A | Plant, X)</code>
+        <br>
+        H1 uses geometry + motion + defense,
+        27 features. Combat was deliberately removed.
+      </p>
+
+    </article>
+
+  </div>
+
+
+  <pre><code>P(A)  = q * r
+P(B)  = q * (1 - r)
+P(NO) = 1 - q</code></pre>
+
+</section>
+
+
+<section class="section">
+
+  <div class="section-head">
+
+    <h2>
+      What changed from H0 to H2
+    </h2>
+
+    <p>
+      Hierarchy alone lost. Feature specialization
+      recovered most of the gap. Calibration then
+      improved the Site Head probabilities.
+    </p>
+
+  </div>
+
+
+  <div
+    class="table-wrap"
+    role="region"
+    aria-label="V1 model comparison"
+    tabindex="0"
+  >
+
+    <table>
+
+      <thead>
+
+        <tr>
+          <th>Model</th>
+          <th>Log loss ↓</th>
+          <th>Brier ↓</th>
+          <th>Accuracy ↑</th>
+          <th>Macro F1 ↑</th>
+          <th>Decision</th>
+        </tr>
+
+      </thead>
+
+
+      <tbody>
+
+        <tr class="best">
+
+          <td>
+            V0 XGB-A5
+          </td>
+
+          <td>
+            0.838182
+          </td>
+
+          <td>
+            0.503190
+          </td>
+
+          <td>
+            0.594899
+          </td>
+
+          <td>
+            0.566090
+          </td>
+
+          <td>
+            Selected baseline
+          </td>
+
+        </tr>
+
+
+        <tr>
+
+          <td>
+            V1-H0
+          </td>
+
+          <td>
+            0.852546
+          </td>
+
+          <td>
+            0.504516
+          </td>
+
+          <td>
+            0.592527
+          </td>
+
+          <td>
+            0.566455
+          </td>
+
+          <td>
+            Reject
+          </td>
+
+        </tr>
+
+
+        <tr>
+
+          <td>
+            V1-H1
+          </td>
+
+          <td>
+            0.840649
+          </td>
+
+          <td>
+            0.499879
+          </td>
+
+          <td>
+            0.590154
+          </td>
+
+          <td>
+            0.564673
+          </td>
+
+          <td>
+            Promising
+          </td>
+
+        </tr>
+
+
+        <tr>
+
+          <td>
+            V1-H2
+          </td>
+
+          <td>
+            <b>0.837397</b>
+          </td>
+
+          <td>
+            <b>0.499781</b>
+          </td>
+
+          <td>
+            0.587189
+          </td>
+
+          <td>
+            0.555824
+          </td>
+
+          <td>
+            Promising, not promoted
+          </td>
+
+        </tr>
+
+
+        <tr>
+
+          <td>
+            V1-T0
+          </td>
+
+          <td>
+            0.844859
+          </td>
+
+          <td>
+            0.507984
+          </td>
+
+          <td>
+            0.593120
+          </td>
+
+          <td>
+            0.563414
+          </td>
+
+          <td>
+            Reject
+          </td>
+
+        </tr>
+
+      </tbody>
+
+    </table>
+
+  </div>
+
+
+  <div class="callout">
+
+    <strong>
+      Important:
+    </strong>
+
+    H2 has the best pooled OOF log loss and Brier
+    in this table, but this is development evidence
+    on the same 20 matches. It is not a robust or
+    independent win over V0.
+
+  </div>
+
+</section>
+
+
+<section class="section">
+
+  <div class="section-head">
+
+    <h2>
+      H2 improved Site probability quality
+    </h2>
+
+    <p>
+      Nested Platt calibration changed only the Site
+      Head probability mapping.
+    </p>
+
+  </div>
+
+
+  <div class="grid">
+
+    <article class="card half">
+
+      <div class="stat-label">
+        Site log loss
+      </div>
+
+      <div class="stat">
+        0.478017 → 0.471829
+      </div>
+
+      <p>
+        Probability quality improved.
+      </p>
+
+    </article>
+
+
+    <article class="card half">
+
+      <div class="stat-label">
+        Site Brier
+      </div>
+
+      <div class="stat">
+        0.156244 → 0.154054
+      </div>
+
+      <p>
+        Calibration improved without changing
+        the underlying Site classifier accuracy.
+      </p>
+
+    </article>
+
+  </div>
+
+</section>
+
+
+<section class="section">
+
+  <div class="section-head">
+
+    <h2>
+      Why H2 was not promoted
+    </h2>
+
+    <p>
+      Per-match behavior weakened the pooled result.
+    </p>
+
+  </div>
+
+
+  <div
+    class="table-wrap"
+    role="region"
+    aria-label="H2 robustness"
+    tabindex="0"
+  >
+
+    <table>
+
+      <thead>
+
+        <tr>
+          <th>Evidence</th>
+          <th>Log loss</th>
+          <th>Brier</th>
+        </tr>
+
+      </thead>
+
+
+      <tbody>
+
+        <tr>
+
+          <td>
+            Matches improved
+          </td>
+
+          <td>
+            9 / 20
+          </td>
+
+          <td>
+            12 / 20
+          </td>
+
+        </tr>
+
+
+        <tr>
+
+          <td>
+            Equal-match mean Δ
+          </td>
+
+          <td>
+            -0.001852
+          </td>
+
+          <td>
+            -0.004880
+          </td>
+
+        </tr>
+
+
+        <tr>
+
+          <td>
+            95% bootstrap CI
+          </td>
+
+          <td>
+            [-0.016685, +0.012170]
+          </td>
+
+          <td>
+            [-0.013676, +0.003981]
+          </td>
+
+        </tr>
+
+
+        <tr>
+
+          <td>
+            P(mean Δ &lt; 0)
+          </td>
+
+          <td>
+            0.5918
+          </td>
+
+          <td>
+            0.8621
+          </td>
+
+        </tr>
+
+      </tbody>
+
+    </table>
+
+  </div>
+
+
+  <p>
+    The log-loss median delta was
+    <b>+0.007943</b>,
+    meaning the typical match slightly favored V0
+    even though the equal-match mean favored H2.
+    Both bootstrap intervals cross zero.
+  </p>
+
+</section>
+
+
+<section class="section">
+
+  <div class="section-head">
+
+    <h2>
+      T0 tested longer temporal information
+    </h2>
+
+    <p>
+      Before considering a sequence neural network,
+      a simple controlled baseline tested whether
+      longer history itself added useful signal.
+    </p>
+
+  </div>
+
+
+  <div class="grid">
+
+    <article class="card half">
+
+      <div class="stat-label">
+        Feature contract
+      </div>
+
+      <div class="stat">
+        37 + 34 = 71
+      </div>
+
+      <p>
+        Frozen V0 features plus 34 hand-designed
+        3s / 5s state deltas.
+      </p>
+
+    </article>
+
+
+    <article class="card half">
+
+      <div class="stat-label">
+        Timing QA
+      </div>
+
+      <div class="stat">
+        1,686 rows
+      </div>
+
+      <p>
+        3s exact: 1686/1686.
+        5s exact: 1685/1686.
+        One parser gap used 5.015625 seconds.
+      </p>
+
+    </article>
+
+  </div>
+
+
+  <div class="callout warn">
+
+    <strong>
+      T0 failed the gate.
+    </strong>
+
+    Log loss worsened from 0.838182 to 0.844859
+    and Brier worsened from 0.503190 to 0.507984.
+
+    A GRU, LSTM, Transformer, or temporal convolution
+    was therefore not justified.
+
+  </div>
+
+</section>
+
+
+<section class="section">
+
+  <div class="section-head">
+
+    <h2>
+      What V1 actually taught us
+    </h2>
+
+    <p>
+      A negative or mixed result is useful when the
+      experiment was controlled.
+    </p>
+
+  </div>
+
+
+  <div class="finding-list">
+
+    <article class="finding-row">
+
+      <span class="finding-index">
+        01
+      </span>
+
+      <div>
+
+        <h3>
+          Task decomposition is useful diagnostically.
+        </h3>
+
+        <p>
+          Plant feasibility and site choice behave like
+          different predictive subproblems.
+        </p>
+
+      </div>
+
+      <div class="finding-value">
+        H0 → H1
+        <small>
+          Specialization mattered
+        </small>
+      </div>
+
+    </article>
+
+
+    <article class="finding-row">
+
+      <span class="finding-index">
+        02
+      </span>
+
+      <div>
+
+        <h3>
+          Probability quality and classification
+          accuracy are different.
+        </h3>
+
+        <p>
+          H2 improved Site Head log loss and Brier
+          even though classification accuracy did not
+          meaningfully change.
+        </p>
+
+      </div>
+
+      <div class="finding-value">
+        0.471829
+        <small>
+          Calibrated Site LL
+        </small>
+      </div>
+
+    </article>
+
+
+    <article class="finding-row">
+
+      <span class="finding-index">
+        03
+      </span>
+
+      <div>
+
+        <h3>
+          Pooled OOF is not enough for a tiny gain.
+        </h3>
+
+        <p>
+          Equal-match robustness changed the
+          interpretation of the nominal H2 improvement.
+        </p>
+
+      </div>
+
+      <div class="finding-value">
+        9 / 20
+        <small>
+          H2 LL match wins
+        </small>
+      </div>
+
+    </article>
+
+
+    <article class="finding-row">
+
+      <span class="finding-index">
+        04
+      </span>
+
+      <div>
+
+        <h3>
+          More history is not automatically more signal.
+        </h3>
+
+        <p>
+          The 71-feature T0 model was worse than the
+          37-feature V0 model.
+        </p>
+
+      </div>
+
+      <div class="finding-value">
+        0.844859
+        <small>
+          T0 log loss
+        </small>
+      </div>
+
+    </article>
+
+  </div>
+
+</section>
+
+
+<section class="section">
+
+  <div class="section-head">
+
+    <h2>
+      Scientific freeze
+    </h2>
+
+    <p>
+      The next meaningful gain should preferably come
+      from new information or new data, not repeated
+      tuning against the same 20 matches.
+    </p>
+
+  </div>
+
+
+  <div class="callout">
+
+    <strong>
+      Selected development baseline:
+      V0 XGB-A5.
+    </strong>
+
+    H2 is preserved as a promising research result.
+    T0 is rejected.
+    Sequence modeling is not justified by the
+    current evidence.
+
+  </div>
+
+
+  <p>
+    <a
+      href="../assets/sources/v1_scientific_record.md"
+      download
+    >
+      Download the complete V1 scientific record ↓
+    </a>
+  </p>
+
+</section>
+<footer class="footer"><a href="../index.html">CS2 Tactical Intelligence Lab</a><span>V1 scientific freeze · V0 remains selected · September 2026</span><a href="../pages/evidence.html#v1-freeze">Inspect the V1 evidence ↗</a></footer></div></main></div><script src="../assets/site.js"></script></body></html>

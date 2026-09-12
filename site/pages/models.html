@@ -1,6 +1,6 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Each increase in model complexity has to answer a specific question and earn its place through evaluation."><meta name="theme-color" content="#142623"><title>Models — CS2 Tactical Intelligence Lab</title><link rel="stylesheet" href="../assets/style.css?v=v0-tc-freeze"></head>
-<body data-page="models"><a class="skip-link" href="#main">Skip to content</a><div class="shell"><aside class="side" id="site-navigation" aria-label="Lab navigation"><a class="brand" href="../index.html"><span class="mark">cti<span>↗</span></span><span><small>Independent research</small><strong>CS2 Tactical<br>Intelligence Lab</strong></span></a><div class="nav-label">The research notebook</div><nav class="nav"><a data-page="home" href="../index.html"><span>01</span>Overview</a><a data-page="v0" href="../pages/v0.html"><span>02</span>Understanding V0</a><a data-page="evidence" href="../pages/evidence.html"><span>03</span>Results & evidence</a><a data-page="models" href="../pages/models.html" class="active" aria-current="page"><span>04</span>Models</a><a data-page="data" href="../pages/data.html"><span>05</span>Data & pipeline</a><a data-page="roadmap" href="../pages/roadmap.html"><span>06</span>Roadmap</a><a data-page="decisions" href="../pages/decisions.html"><span>07</span>Design decisions</a><a data-page="research" href="../pages/research.html"><span>08</span>Research horizons</a><a data-page="build-log" href="../pages/build-log.html"><span>09</span>Build log</a><a data-page="journey" href="../pages/journey.html"><span>10</span>The journey</a></nav><div class="side-bottom"><div class="status"><i class="dot"></i>V0 · Corrected freeze</div><p>Observe. Test. Understand.<br>Let evidence lead the next version.</p><span class="edition">RESEARCH SERIES / 001</span></div></aside><div class="menu-backdrop" hidden></div><main class="main" id="main"><div class="top"><button class="menu" aria-controls="site-navigation" aria-expanded="false" aria-label="Open navigation">☰ <span>Menu</span></button><span class="breadcrumb">The notebook <span>/</span> Models</span><span class="top-meta">MIRAGE <span>·</span> VERSION 0</span></div><div class="content">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Each increase in model complexity has to answer a specific question and earn its place through evaluation."><meta name="theme-color" content="#142623"><title>Models — CS2 Tactical Intelligence Lab</title><link rel="stylesheet" href="../assets/style.css?v=v1-science-freeze"></head>
+<body data-page="models"><a class="skip-link" href="#main">Skip to content</a><div class="shell"><aside class="side" id="site-navigation" aria-label="Lab navigation"><a class="brand" href="../index.html"><span class="mark">cti<span>↗</span></span><span><small>Independent research</small><strong>CS2 Tactical<br>Intelligence Lab</strong></span></a><div class="nav-label">The research notebook</div><nav class="nav"><a data-page="home" href="../index.html"><span>01</span>Overview</a><a data-page="v0" href="../pages/v0.html"><span>02</span>Understanding V0</a><a data-page="v1" href="../pages/v1.html"><span>03</span>Understanding V1</a><a data-page="evidence" href="../pages/evidence.html"><span>04</span>Results & evidence</a><a data-page="models" href="../pages/models.html" class="active" aria-current="page"><span>05</span>Models</a><a data-page="data" href="../pages/data.html"><span>06</span>Data & pipeline</a><a data-page="roadmap" href="../pages/roadmap.html"><span>07</span>Roadmap</a><a data-page="decisions" href="../pages/decisions.html"><span>08</span>Design decisions</a><a data-page="research" href="../pages/research.html"><span>09</span>Research horizons</a><a data-page="build-log" href="../pages/build-log.html"><span>10</span>Build log</a><a data-page="journey" href="../pages/journey.html"><span>11</span>The journey</a></nav><div class="side-bottom"><div class="status"><i class="dot"></i>V1 · Science frozen</div><p>Observe. Test. Understand.<br>Let evidence lead the next version.</p><span class="edition">RESEARCH SERIES / 001</span></div></aside><div class="menu-backdrop" hidden></div><main class="main" id="main"><div class="top"><button class="menu" aria-controls="site-navigation" aria-expanded="false" aria-label="Open navigation">☰ <span>Menu</span></button><span class="breadcrumb">The notebook <span>/</span> Models</span><span class="top-meta">MIRAGE <span>·</span> VERSION 0</span></div><div class="content">
 <header class="hero"><div class="kicker">Corrected model selection</div><h1>Models</h1><p class="lead">The same feature ladder, reevaluated on true 10 / 20 / 30 / 40-second observations.</p></header>
 <div class="research-board"><div class="board-story"><div class="kicker">Selected corrected V0 baseline</div><h2>XGB-A5</h2><p>Horizon + offensive geometry + motion + combat + defense. A nonlinear tabular forecast over full observer state.</p><div class="outcomes"><span class="outcome">37 inputs</span><span class="outcome">3 probabilities</span><span class="outcome">No economy</span></div></div><div class="board-metrics"><div class="metric"><span>Log loss ↓</span><strong>0.838182</strong></div><div class="metric"><span>Brier ↓</span><strong>0.503190</strong></div><div class="metric"><span>Accuracy ↑</span><strong>59.49%</strong></div><div class="metric"><span>Macro F1 ↑</span><strong>0.566090</strong></div></div></div>
 <section class="section" id="experiment-structure"><div class="section-head"><h2>The experiment structure</h2><p>A5 is a branch from A3.</p></div><figure class="experiment-graph" aria-labelledby="experiment-caption">
@@ -19,4 +19,108 @@
 </figure><p>Logistic regression tests incremental information with a relatively simple model. XGBoost then tests nonlinear structure using the same frozen observations and folds. <a href="v0.html#chapter-12">Learn how both models work ↗</a></p></section>
 <section class="section"><div class="section-head"><h2>Corrected feature ladder</h2><p>A4 and A5 branch independently from A3.</p></div><div class="table-wrap" role="region" aria-label="Research evidence table" tabindex="0"><table><thead><tr><th scope="col">Stage</th><th scope="col">Information</th><th scope="col">Inputs</th><th scope="col">Corrected log loss ↓</th><th scope="col">Decision</th></tr></thead><tbody><tr><td>A0</td><td>Class prior</td><td>0</td><td>1.036019</td><td>Baseline</td></tr><tr><td>A1</td><td>+ offensive geometry</td><td>13</td><td>0.947481</td><td>Keep</td></tr><tr><td>A2</td><td>+ motion</td><td>17</td><td>0.942335</td><td>Keep</td></tr><tr><td>A3</td><td>+ combat</td><td>26</td><td>0.887596</td><td>Keep</td></tr><tr><td>A4</td><td>+ economy</td><td>29</td><td>0.895020</td><td>Exclude</td></tr><tr><td>A5</td><td>+ defense from A3</td><td>37</td><td>0.896782</td><td>Linear test</td></tr><tr class="best"><td>XGB-A5</td><td>A5 with nonlinear interactions</td><td>37</td><td>0.838182</td><td>Selected</td></tr></tbody></table></div></section>
 <section class="section"><div class="section-head"><h2>What defense taught us</h2><p>Model family changes whether the extra information can be used.</p></div><div class="callout"><strong>Defense adds little linear value but meaningful nonlinear value in XGBoost.</strong> Logistic A5 has log loss 0.896782, slightly worse than Logistic A3 at 0.887596. XGB-A5 improves over XGB-A3 from 0.857756 to 0.838182.</div></section>
-<section class="section"><div class="section-head"><h2>Evidence-derived V1 hypothesis</h2><p>A focused experiment, not a casual future idea.</p></div><div class="grid"><article class="card half"><div class="stat-label">Stage 1</div><h3>Plant feasibility</h3><p>Estimate P(plant). Combat is the dominant feature family in this diagnostic task.</p></article><article class="card half"><div class="stat-label">Stage 2</div><h3>Conditional site choice</h3><p>Estimate P(A | plant). Offensive geometry is the dominant feature family.</p></article></div><p>Compose the three-class output as P(A)=q·r, P(B)=q·(1−r), and P(NO)=1−q. V0 evidence motivates this structure; only a matched V1 evaluation can establish whether it improves forecasting.</p></section><footer class="footer"><a href="../index.html">CS2 Tactical Intelligence Lab</a><span>Corrected V0 freeze · September 2026</span><a href="../pages/v0.html#limitations">Read the limitations ↗</a></footer></div></main></div><script src="../assets/site.js"></script></body></html>
+<section class="section"><div class="section-head"><h2>Evidence-derived V1 hypothesis</h2><p>A focused experiment, not a casual future idea.</p></div><div class="grid"><article class="card half"><div class="stat-label">Stage 1</div><h3>Plant feasibility</h3><p>Estimate P(plant). Combat is the dominant feature family in this diagnostic task.</p></article><article class="card half"><div class="stat-label">Stage 2</div><h3>Conditional site choice</h3><p>Estimate P(A | plant). Offensive geometry is the dominant feature family.</p></article></div><p>Compose the three-class output as P(A)=q·r, P(B)=q·(1−r), and P(NO)=1−q. V0 evidence motivates this structure; only a matched V1 evaluation can establish whether it improves forecasting.</p></section><!-- V1-SCIENTIFIC-FREEZE -->
+<section
+  class="section"
+  id="v1-model-selection"
+>
+
+  <div class="section-head">
+
+    <h2>
+      V1 model-selection result
+    </h2>
+
+    <p>
+      H2 won pooled probability metrics by a tiny margin,
+      but not robustly enough to replace V0.
+    </p>
+
+  </div>
+
+
+  <div
+    class="table-wrap"
+    role="region"
+    aria-label="V1 model selection"
+    tabindex="0"
+  >
+
+    <table>
+
+      <thead>
+
+        <tr>
+          <th>Model</th>
+          <th>Log loss ↓</th>
+          <th>Brier ↓</th>
+          <th>Accuracy ↑</th>
+          <th>Macro F1 ↑</th>
+          <th>Status</th>
+        </tr>
+
+      </thead>
+
+
+      <tbody>
+
+        <tr class="best">
+          <td>V0 XGB-A5</td>
+          <td>0.838182</td>
+          <td>0.503190</td>
+          <td>0.594899</td>
+          <td>0.566090</td>
+          <td>Selected</td>
+        </tr>
+
+        <tr>
+          <td>H0</td>
+          <td>0.852546</td>
+          <td>0.504516</td>
+          <td>0.592527</td>
+          <td>0.566455</td>
+          <td>Rejected</td>
+        </tr>
+
+        <tr>
+          <td>H1</td>
+          <td>0.840649</td>
+          <td>0.499879</td>
+          <td>0.590154</td>
+          <td>0.564673</td>
+          <td>Promising</td>
+        </tr>
+
+        <tr>
+          <td>H2</td>
+          <td>0.837397</td>
+          <td>0.499781</td>
+          <td>0.587189</td>
+          <td>0.555824</td>
+          <td>Preserved, not promoted</td>
+        </tr>
+
+        <tr>
+          <td>T0</td>
+          <td>0.844859</td>
+          <td>0.507984</td>
+          <td>0.593120</td>
+          <td>0.563414</td>
+          <td>Rejected</td>
+        </tr>
+
+      </tbody>
+
+    </table>
+
+  </div>
+
+
+  <p>
+    <a href="v1.html">
+      Read the complete V1 experiment chain ↗
+    </a>
+  </p>
+
+</section>
+<footer class="footer"><a href="../index.html">CS2 Tactical Intelligence Lab</a><span>V1 scientific freeze · V0 remains selected · September 2026</span><a href="../pages/v0.html#limitations">Read the limitations ↗</a></footer></div></main></div><script src="../assets/site.js"></script></body></html>

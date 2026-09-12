@@ -1,10 +1,11 @@
 {
   "project": "CS2 Tactical Intelligence Lab",
-  "stage": "Corrected V0 freeze checkpoint",
+  "stage": "V1 scientific freeze",
   "v0_status": "TIMING CORRECTED \u00b7 EVIDENCE + RUNTIME FROZEN \u00b7 REAL CAPTURE DEFERRED",
   "pages": [
     "index.html",
     "pages/v0.html",
+    "pages/v1.html",
     "pages/evidence.html",
     "pages/models.html",
     "pages/data.html",
@@ -22,9 +23,13 @@
     "error analysis",
     "next version"
   ],
-  "selected_model": "XGB-A5 \u00b7 corrected timing",
+  "selected_model": "V0 XGB-A5 \u00b7 corrected timing",
   "observation_scope": "Mirage, full observer, true 10/20/30/40 seconds after freeze_end",
   "explanation_chapters": 24,
   "observations": 1686,
-  "measured_tick_rate": 64
+  "measured_tick_rate": 64,
+  "v1_status": "SCIENTIFICALLY FROZEN \u00b7 H2 PROMISING NOT PROMOTED \u00b7 T0 REJECTED",
+  "v1_best_pooled_model": "H2 calibrated hierarchy",
+  "v1_best_pooled_log_loss": 0.837397,
+  "v1_decision": "V0 remains selected; seek new information/data before more tuning"
 }
