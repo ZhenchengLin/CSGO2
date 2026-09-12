@@ -7,6 +7,7 @@ import re
 import shutil
 from pathlib import Path
 from urllib.parse import urlsplit
+from reconcile_site_status import reconcile
 
 
 ROOT = Path.cwd()
@@ -493,7 +494,7 @@ def make_v1_page():
     Understanding V1
   </h1>
 
-  <p><a href="#reading-v1">New: How to Read the V1 Evidence — Lessons 1–3 and 14 concepts ↓</a></p>
+  <p><a href="#reading-v1">New: How to Read the V1 Evidence — Lessons 1–5 and 14 concepts ↓</a></p>
 
   <p class="lead">
     A controlled sequence of experiments asked whether
@@ -2722,6 +2723,8 @@ def main():
     print(
         "\n[8/8] Validate site"
     )
+
+    reconcile()
 
     validate_nav()
 
