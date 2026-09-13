@@ -1,6 +1,6 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="A research notebook explaining the design and frozen development evaluation of a CS2 early-round plant outcome forecaster."><meta name="theme-color" content="#142623"><title>Overview — CS2 Tactical Intelligence Lab</title><link rel="stylesheet" href="assets/style.css?v=v1-science-freeze"></head>
-<body data-page="home"><a class="skip-link" href="#main">Skip to content</a><div class="shell"><aside class="side" id="site-navigation" aria-label="Lab navigation"><a class="brand" href="index.html"><span class="mark">cti<span>↗</span></span><span><small>Independent research</small><strong>CS2 Tactical<br>Intelligence Lab</strong></span></a><div class="nav-label">The research notebook</div><nav class="nav"><a data-page="home" href="index.html" class="active" aria-current="page"><span>01</span>Overview</a><a data-page="v0" href="pages/v0.html"><span>02</span>Understanding V0</a><a data-page="v1" href="pages/v1.html"><span>03</span>Understanding V1</a><a data-page="evidence" href="pages/evidence.html"><span>04</span>Results & evidence</a><a data-page="models" href="pages/models.html"><span>05</span>Models</a><a data-page="data" href="pages/data.html"><span>06</span>Data & pipeline</a><a data-page="roadmap" href="pages/roadmap.html"><span>07</span>Roadmap</a><a data-page="decisions" href="pages/decisions.html"><span>08</span>Design decisions</a><a data-page="research" href="pages/research.html"><span>09</span>Research horizons</a><a data-page="build-log" href="pages/build-log.html"><span>10</span>Build log</a><a data-page="journey" href="pages/journey.html"><span>11</span>The journey</a></nav><div class="side-bottom"><div class="status"><i class="dot"></i>V1 · Science frozen</div><p>Observe. Test. Understand.<br>Let evidence lead the next version.</p><span class="edition">RESEARCH SERIES / 001</span></div></aside><div class="menu-backdrop" hidden></div><main class="main" id="main"><div class="top"><button class="menu" aria-controls="site-navigation" aria-expanded="false" aria-label="Open navigation">☰ <span>Menu</span></button><span class="breadcrumb">The notebook <span>/</span> Overview</span><span class="top-meta">MIRAGE <span>·</span> V1 SCIENCE FREEZE</span></div><div class="content"><header class="home-hero"><div><div class="kicker">An evidence-led CS2 research notebook</div><h1>Before the plant.<br><em>What can we know?</em></h1><p class="lead">From raw match demos to an early-round forecast. A record of the experiments, mistakes, and design decisions behind CS2 Tactical Intelligence.</p><div class="actions"><a class="button" href="pages/v0.html">Understand V0 <span>↗</span></a><a class="text-link" href="pages/evidence.html">Explore the evidence →</a></div></div><div class="hero-tactical" aria-label="Animated tactical round visualization">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="A research notebook explaining the design and frozen development evaluation of a CS2 early-round plant outcome forecaster."><meta name="theme-color" content="#142623"><title>Overview — CS2 Tactical Intelligence Lab</title><link rel="stylesheet" href="assets/style.css?v=v2-integrity"></head>
+<body data-page="home"><a class="skip-link" href="#main">Skip to content</a><div class="shell"><aside class="side" id="site-navigation" aria-label="Lab navigation"><a class="brand" href="index.html"><span class="mark">cti<span>↗</span></span><span><small>Independent research</small><strong>CS2 Tactical<br>Intelligence Lab</strong></span></a><div class="nav-label">The research notebook</div><nav class="nav"><a data-page="home" href="index.html" class="active" aria-current="page"><span>01</span>Overview</a><a data-page="v0" href="pages/v0.html"><span>02</span>Understanding V0</a><a data-page="v1" href="pages/v1.html"><span>03</span>Understanding V1</a><a data-page="v2" href="pages/v2.html"><span>04</span>V2 confirmation</a><a data-page="evidence" href="pages/evidence.html"><span>05</span>Results & evidence</a><a data-page="models" href="pages/models.html"><span>06</span>Models</a><a data-page="data" href="pages/data.html"><span>07</span>Data & pipeline</a><a data-page="roadmap" href="pages/roadmap.html"><span>08</span>Roadmap</a><a data-page="decisions" href="pages/decisions.html"><span>09</span>Design decisions</a><a data-page="research" href="pages/research.html"><span>10</span>Research horizons</a><a data-page="build-log" href="pages/build-log.html"><span>11</span>Build log</a><a data-page="journey" href="pages/journey.html"><span>12</span>The journey</a></nav><div class="side-bottom"><div class="status"><i class="dot"></i>V2 · Data integrity passed</div><p>Observe. Test. Understand.<br>Let evidence lead the next version.</p><span class="edition">RESEARCH SERIES / 001</span></div></aside><div class="menu-backdrop" hidden></div><main class="main" id="main"><div class="top"><button class="menu" aria-controls="site-navigation" aria-expanded="false" aria-label="Open navigation">☰ <span>Menu</span></button><span class="breadcrumb">The notebook <span>/</span> Overview</span><span class="top-meta">MIRAGE <span>·</span> V1 SCIENCE FREEZE</span></div><div class="content"><header class="home-hero"><div><div class="kicker">An evidence-led CS2 research notebook</div><h1>Before the plant.<br><em>What can we know?</em></h1><p class="lead">From raw match demos to an early-round forecast. A record of the experiments, mistakes, and design decisions behind CS2 Tactical Intelligence.</p><div class="actions"><a class="button" href="pages/v0.html">Understand V0 <span>↗</span></a><a class="text-link" href="pages/evidence.html">Explore the evidence →</a></div></div><div class="hero-tactical" aria-label="Animated tactical round visualization">
 
   <div class="hero-tactical-head">
     <span>LIVE TACTICAL VIEW</span>
@@ -139,6 +139,71 @@
       <span>↗</span>
     </a>
 
+  </p>
+
+</section>
+<!-- V2-INTEGRITY-REPAIR -->
+<section class="section" id="v2-integrity">
+
+  <div class="section-head">
+    <h2>V2 confirmation data gate passed</h2>
+
+    <p>
+      Untouched confirmation data exposed
+      parser/adapter assumptions before
+      any model scoring.
+    </p>
+  </div>
+
+  <div class="grid">
+
+    <article class="card half">
+      <div class="stat-label">
+        D_CONFIRM
+      </div>
+
+      <h3>
+        30 frozen matches · 2269 observations
+      </h3>
+
+      <p>
+        Final dataset passes feature, label,
+        horizon, finiteness, and uniqueness QA.
+      </p>
+
+      <p>
+        SHA256:
+        <code>e781dbebe0956322476cd8841675ad9a22e9d680c6dec7a47f5d23c35829c367</code>
+      </p>
+    </article>
+
+    <article class="card half">
+
+      <div class="stat-label">
+        Scientific consequence
+      </div>
+
+      <h3>
+        44 / 1686 legacy labels repaired
+      </h3>
+
+      <p>
+        Old V0/H2 metrics remain
+        pre-repair research history.
+        Rebuild the same frozen methods with
+        corrected labels and no retuning before
+        the formal D_CONFIRM evaluation.
+      </p>
+
+    </article>
+
+  </div>
+
+  <p>
+    <a class="button" href="pages/v2.html">
+      Read the V2 integrity record
+      <span>↗</span>
+    </a>
   </p>
 
 </section>

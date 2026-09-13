@@ -1,0 +1,23 @@
+{
+  "role": "V2 independent confirmation dataset",
+  "manifest": "docs/v2_confirm_manifest.csv",
+  "manifest_sha256": "95b1a29b455c37c417c0220e4998debcd1a25727f8d32bbc60baafe1e9106a9b",
+  "dataset": "data/processed/v2_confirm_dataset.parquet",
+  "dataset_sha256": "e781dbebe0956322476cd8841675ad9a22e9d680c6dec7a47f5d23c35829c367",
+  "n_matches": 30,
+  "n_observations": 2269,
+  "n_predictive_features": 37,
+  "labels": {
+    "A_PLANT": 693,
+    "B_PLANT": 416,
+    "NO_PLANT": 1160
+  },
+  "horizons": {
+    "10": 600,
+    "20": 596,
+    "30": 577,
+    "40": 496
+  },
+  "scientific_metrics_calculated": false,
+  "model_predictions_calculated": false
+}

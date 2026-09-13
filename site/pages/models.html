@@ -1,6 +1,6 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Each increase in model complexity has to answer a specific question and earn its place through evaluation."><meta name="theme-color" content="#142623"><title>Models — CS2 Tactical Intelligence Lab</title><link rel="stylesheet" href="../assets/style.css?v=v1-science-freeze"></head>
-<body data-page="models"><a class="skip-link" href="#main">Skip to content</a><div class="shell"><aside class="side" id="site-navigation" aria-label="Lab navigation"><a class="brand" href="../index.html"><span class="mark">cti<span>↗</span></span><span><small>Independent research</small><strong>CS2 Tactical<br>Intelligence Lab</strong></span></a><div class="nav-label">The research notebook</div><nav class="nav"><a data-page="home" href="../index.html"><span>01</span>Overview</a><a data-page="v0" href="../pages/v0.html"><span>02</span>Understanding V0</a><a data-page="v1" href="../pages/v1.html"><span>03</span>Understanding V1</a><a data-page="evidence" href="../pages/evidence.html"><span>04</span>Results & evidence</a><a data-page="models" href="../pages/models.html" class="active" aria-current="page"><span>05</span>Models</a><a data-page="data" href="../pages/data.html"><span>06</span>Data & pipeline</a><a data-page="roadmap" href="../pages/roadmap.html"><span>07</span>Roadmap</a><a data-page="decisions" href="../pages/decisions.html"><span>08</span>Design decisions</a><a data-page="research" href="../pages/research.html"><span>09</span>Research horizons</a><a data-page="build-log" href="../pages/build-log.html"><span>10</span>Build log</a><a data-page="journey" href="../pages/journey.html"><span>11</span>The journey</a></nav><div class="side-bottom"><div class="status"><i class="dot"></i>V1 · Science frozen</div><p>Observe. Test. Understand.<br>Let evidence lead the next version.</p><span class="edition">RESEARCH SERIES / 001</span></div></aside><div class="menu-backdrop" hidden></div><main class="main" id="main"><div class="top"><button class="menu" aria-controls="site-navigation" aria-expanded="false" aria-label="Open navigation">☰ <span>Menu</span></button><span class="breadcrumb">The notebook <span>/</span> Models</span><span class="top-meta">MIRAGE <span>·</span> V1 SCIENCE FREEZE</span></div><div class="content">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Each increase in model complexity has to answer a specific question and earn its place through evaluation."><meta name="theme-color" content="#142623"><title>Models — CS2 Tactical Intelligence Lab</title><link rel="stylesheet" href="../assets/style.css?v=v2-integrity"></head>
+<body data-page="models"><a class="skip-link" href="#main">Skip to content</a><div class="shell"><aside class="side" id="site-navigation" aria-label="Lab navigation"><a class="brand" href="../index.html"><span class="mark">cti<span>↗</span></span><span><small>Independent research</small><strong>CS2 Tactical<br>Intelligence Lab</strong></span></a><div class="nav-label">The research notebook</div><nav class="nav"><a data-page="home" href="../index.html"><span>01</span>Overview</a><a data-page="v0" href="../pages/v0.html"><span>02</span>Understanding V0</a><a data-page="v1" href="../pages/v1.html"><span>03</span>Understanding V1</a><a data-page="v2" href="../pages/v2.html"><span>04</span>V2 confirmation</a><a data-page="evidence" href="../pages/evidence.html"><span>05</span>Results & evidence</a><a data-page="models" href="../pages/models.html" class="active" aria-current="page"><span>06</span>Models</a><a data-page="data" href="../pages/data.html"><span>07</span>Data & pipeline</a><a data-page="roadmap" href="../pages/roadmap.html"><span>08</span>Roadmap</a><a data-page="decisions" href="../pages/decisions.html"><span>09</span>Design decisions</a><a data-page="research" href="../pages/research.html"><span>10</span>Research horizons</a><a data-page="build-log" href="../pages/build-log.html"><span>11</span>Build log</a><a data-page="journey" href="../pages/journey.html"><span>12</span>The journey</a></nav><div class="side-bottom"><div class="status"><i class="dot"></i>V2 · Data integrity passed</div><p>Observe. Test. Understand.<br>Let evidence lead the next version.</p><span class="edition">RESEARCH SERIES / 001</span></div></aside><div class="menu-backdrop" hidden></div><main class="main" id="main"><div class="top"><button class="menu" aria-controls="site-navigation" aria-expanded="false" aria-label="Open navigation">☰ <span>Menu</span></button><span class="breadcrumb">The notebook <span>/</span> Models</span><span class="top-meta">MIRAGE <span>·</span> V1 SCIENCE FREEZE</span></div><div class="content">
 <header class="hero"><div class="kicker">Corrected model selection</div><h1>Models</h1><p class="lead">The same feature ladder, reevaluated on true 10 / 20 / 30 / 40-second observations.</p></header>
 <div class="research-board"><div class="board-story"><div class="kicker">Selected corrected V0 baseline</div><h2>XGB-A5</h2><p>Horizon + offensive geometry + motion + combat + defense. A nonlinear tabular forecast over full observer state.</p><div class="outcomes"><span class="outcome">37 inputs</span><span class="outcome">3 probabilities</span><span class="outcome">No economy</span></div></div><div class="board-metrics"><div class="metric"><span>Log loss ↓</span><strong>0.838182</strong></div><div class="metric"><span>Brier ↓</span><strong>0.503190</strong></div><div class="metric"><span>Accuracy ↑</span><strong>59.49%</strong></div><div class="metric"><span>Macro F1 ↑</span><strong>0.566090</strong></div></div></div>
 <section class="section" id="experiment-structure"><div class="section-head"><h2>The experiment structure</h2><p>A5 is a branch from A3.</p></div><figure class="experiment-graph" aria-labelledby="experiment-caption">
@@ -121,6 +121,43 @@
       Read the complete V1 experiment chain ↗
     </a>
   </p>
+
+</section>
+<!-- V2-INTEGRITY-REPAIR -->
+<section class="section" id="v2-integrity">
+
+  <div class="section-head">
+    <h2>
+      Baseline status after V2 integrity audit
+    </h2>
+
+    <p>
+      Model design stays frozen.
+      Development supervision changed.
+    </p>
+  </div>
+
+  <div class="callout warn">
+
+    <strong>
+      44 / 1686 development labels were repaired.
+    </strong>
+
+    Therefore old V0/H2 metrics are historical
+    pre-repair metrics.
+
+    The next baseline must reuse the same:
+
+    20 matches,
+    1686 observations,
+    37 features,
+    five folds,
+    XGB-A5 hyperparameters,
+    and H2 procedure.
+
+    There will be no retuning.
+
+  </div>
 
 </section>
 <footer class="footer"><a href="../index.html">CS2 Tactical Intelligence Lab</a><span>V1 scientific freeze · V0 remains selected · September 2026</span><a href="../pages/v0.html#limitations">Read the limitations ↗</a></footer></div></main></div><script src="../assets/site.js"></script></body></html>

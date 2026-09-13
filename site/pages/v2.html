@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="A controlled sequence of hierarchical, calibration, robustness, and temporal experiments. H2 was promising, but V0 remains the selected development baseline."><meta name="theme-color" content="#142623"><title>V2 Confirmation Integrity — CS2 Tactical Intelligence Lab</title><link rel="stylesheet" href="../assets/style.css?v=v2-integrity"></head>
+<body data-page="v2"><a class="skip-link" href="#main">Skip to content</a><div class="shell"><aside class="side" id="site-navigation" aria-label="Lab navigation"><a class="brand" href="../index.html"><span class="mark">cti<span>↗</span></span><span><small>Independent research</small><strong>CS2 Tactical<br>Intelligence Lab</strong></span></a><div class="nav-label">The research notebook</div><nav class="nav"><a data-page="home" href="../index.html"><span>01</span>Overview</a><a data-page="v0" href="../pages/v0.html"><span>02</span>Understanding V0</a><a data-page="v1" href="../pages/v1.html"><span>03</span>Understanding V1</a><a data-page="v2" href="../pages/v2.html" class="active" aria-current="page"><span>04</span>V2 confirmation</a><a data-page="evidence" href="../pages/evidence.html"><span>05</span>Results & evidence</a><a data-page="models" href="../pages/models.html"><span>06</span>Models</a><a data-page="data" href="../pages/data.html"><span>07</span>Data & pipeline</a><a data-page="roadmap" href="../pages/roadmap.html"><span>08</span>Roadmap</a><a data-page="decisions" href="../pages/decisions.html"><span>09</span>Design decisions</a><a data-page="research" href="../pages/research.html"><span>10</span>Research horizons</a><a data-page="build-log" href="../pages/build-log.html"><span>11</span>Build log</a><a data-page="journey" href="../pages/journey.html"><span>12</span>The journey</a></nav><div class="side-bottom"><div class="status"><i class="dot"></i>V2 · Data integrity passed</div><p>Observe. Test. Understand.<br>Let evidence lead the next version.</p><span class="edition">RESEARCH SERIES / 001</span></div></aside><div class="menu-backdrop" hidden></div><main class="main" id="main"><div class="top"><button class="menu" aria-controls="site-navigation" aria-expanded="false" aria-label="Open navigation">☰ <span>Menu</span></button><span class="breadcrumb">The notebook <span>/</span> V2 confirmation integrity</span> Understanding V1</span> Models</span><span class="top-meta">MIRAGE <span>·</span> V2 DATA INTEGRITY PASS</span> V1 SCIENCE FREEZE</span> V1 SCIENCE FREEZE</span></div><div class="content">
+<header class="hero">
+  <div class="kicker">
+    V2 confirmation · data integrity repair
+  </div>
+
+  <h1>V2 Confirmation Integrity</h1>
+
+  <p class="lead">
+    The untouched confirmation corpus did exactly what
+    it was supposed to do: it exposed hidden parser and
+    adapter assumptions before any model scoring.
+    The bugs are now repaired, D_CONFIRM passes QA,
+    and the next gate is a corrected no-retuning
+    rebuild of the development baseline.
+  </p>
+
+  <div class="badges">
+    <span class="badge ok">
+      Bug-fix phase complete
+    </span>
+    <span class="badge">
+      30 frozen matches
+    </span>
+    <span class="badge warn">
+      No confirmation scoring yet
+    </span>
+  </div>
+</header>
+
+<section class="section">
+  <div class="section-head">
+    <h2>Current checkpoint</h2>
+    <p>
+      D_CONFIRM is built and QA-passed.
+      The historical development baseline must now
+      be rebuilt on corrected labels.
+    </p>
+  </div>
+
+  <div class="grid">
+
+    <article class="card">
+      <div class="stat-label">
+        D_CONFIRM
+      </div>
+
+      <div class="stat">
+        2269
+      </div>
+
+      <p>
+        Feature-valid observations from
+        30 frozen matches.
+      </p>
+    </article>
+
+    <article class="card">
+      <div class="stat-label">
+        Legacy label repair
+      </div>
+
+      <div class="stat">
+        44 / 1686
+      </div>
+
+      <p>
+        2.61% of development observation labels
+        changed from A/B Plant to No Plant.
+      </p>
+    </article>
+
+    <article class="card">
+      <div class="stat-label">
+        Confirmation scoring
+      </div>
+
+      <div class="stat">
+        0
+      </div>
+
+      <p>
+        No prediction, metric, tuning, or reserve
+        swapping guided these repairs.
+      </p>
+    </article>
+
+  </div>
+</section>
+
+<section class="section">
+
+  <div class="section-head">
+    <h2>
+      How debugging changed our understanding
+    </h2>
+
+    <p>
+      The important record is not only the final fix,
+      but which hypotheses were rejected.
+    </p>
+  </div>
+
+  <div class="timeline">
+
+    <div class="entry">
+      <time>
+        01 · Carrier coverage
+      </time>
+
+      <h3>
+        Inventory was not always sufficient
+        to locate the bomb.
+      </h3>
+
+      <p>
+        Nemesis vs SINNERS showed a historical pickup
+        event with no C4 in player inventory.
+        Pickup identifies the carrier.
+        Current snapshot coordinates define position.
+      </p>
+    </div>
+
+    <div class="entry">
+      <time>
+        02 · Snapshot coverage
+      </time>
+
+      <h3>
+        Some demos stop emitting player state
+        before a nominal horizon.
+      </h3>
+
+      <p>
+        NiP and ShindeN exposed missing snapshots.
+        V2 excludes only the affected observation,
+        with no interpolation or carry-forward.
+      </p>
+    </div>
+
+    <div class="entry">
+      <time>
+        03 · Rejected hypothesis
+      </time>
+
+      <h3>
+        We suspected bomb-event round numbers
+        were wrong.
+      </h3>
+
+      <p>
+        Independent tick-derived round association
+        found zero round-number mismatches.
+        The hypothesis was rejected instead of patched.
+      </p>
+    </div>
+
+    <div class="entry">
+      <time>
+        04 · Rejected assumption
+      </time>
+
+      <h3>
+        We briefly treated
+        <code>demo.rounds.bomb_site</code>
+        as A/B truth.
+      </h3>
+
+      <p>
+        That assumption failed.
+        Across 298 valid D_CONFIRM plants,
+        event site matched planter place 298/298,
+        while round metadata reported B for
+        all 188 A-site plants.
+      </p>
+    </div>
+
+    <div class="entry">
+      <time>
+        05 · Root cause
+      </time>
+
+      <h3>
+        Ghost plant events were contaminating labels.
+      </h3>
+
+      <p>
+        18 confirmation events and 11 legacy events
+        occurred after round end.
+        The 11 legacy ghost rounds changed
+        44 / 1686 development labels.
+      </p>
+    </div>
+
+    <div class="entry">
+      <time>
+        06 · Separate feature issue
+      </time>
+
+      <h3>
+        Leo round 4 still had no bomb state
+        at early horizons.
+      </h3>
+
+      <p>
+        The label was fixed to No Plant,
+        but 10s / 20s / 30s had no trustworthy
+        bomb evidence before the target tick.
+        Those observations are excluded rather than
+        backfilled from a future pickup.
+      </p>
+    </div>
+
+  </div>
+</section>
+
+<section class="section">
+
+  <div class="section-head">
+    <h2>Permanent data contracts</h2>
+
+    <p>
+      Each debugged failure now leaves a guardrail.
+    </p>
+  </div>
+
+  <div
+    class="table-wrap"
+    role="region"
+    aria-label="V2 data integrity contracts"
+    tabindex="0"
+  >
+
+    <table>
+
+      <thead>
+        <tr>
+          <th>Contract</th>
+          <th>Invariant</th>
+          <th>Fail-closed action</th>
+        </tr>
+      </thead>
+
+      <tbody>
+
+        <tr>
+          <td>PLANT-001</td>
+          <td>
+            Plant event must fall inside
+            [round.start, round.end].
+          </td>
+          <td>
+            Ignore ghost event.
+            It cannot create a label.
+          </td>
+        </tr>
+
+        <tr>
+          <td>PLANT-002</td>
+          <td>
+            Valid event bombsite defines A/B.
+            Planter place is the integrity cross-check.
+          </td>
+          <td>
+            Block on a true site conflict.
+          </td>
+        </tr>
+
+        <tr>
+          <td>PLANT-003</td>
+          <td>
+            Metadata plant without valid event
+            does not justify guessing site.
+          </td>
+          <td>
+            PLANT_LABEL_UNRESOLVED
+            → exclude round.
+          </td>
+        </tr>
+
+        <tr>
+          <td>SNAPSHOT-001</td>
+          <td>
+            Observation needs a real player snapshot
+            at target or within +1 raw tick.
+          </td>
+          <td>
+            MISSING_PLAYER_SNAPSHOT
+            → exclude observation.
+          </td>
+        </tr>
+
+        <tr>
+          <td>BOMB-001</td>
+          <td>
+            Bomb state may use only evidence
+            at or before observation time.
+          </td>
+          <td>
+            BOMB_STATE_UNRESOLVED
+            → exclude observation.
+            Never use future events.
+          </td>
+        </tr>
+
+        <tr>
+          <td>DATASET-001</td>
+          <td>
+            37 frozen features,
+            finite values,
+            unique observation keys,
+            frozen labels/horizons.
+          </td>
+          <td>
+            Block dataset before scoring.
+          </td>
+        </tr>
+
+      </tbody>
+
+    </table>
+  </div>
+</section>
+
+<section class="section">
+
+  <div class="section-head">
+    <h2>Final D_CONFIRM dataset</h2>
+
+    <p>
+      Built after deterministic pre-inference repairs.
+    </p>
+  </div>
+
+  <div class="grid">
+
+    <article class="card half">
+      <div class="stat-label">
+        Labels
+      </div>
+
+      <h3>
+        A 693 · B 416 · No Plant 1160
+      </h3>
+
+      <p>
+        Canonical post-repair class counts.
+      </p>
+    </article>
+
+    <article class="card half">
+      <div class="stat-label">
+        Horizons
+      </div>
+
+      <h3>
+        600 · 596 · 577 · 496
+      </h3>
+
+      <p>
+        10s · 20s · 30s · 40s observations.
+      </p>
+    </article>
+
+  </div>
+
+  <div class="callout">
+    <strong>Dataset SHA256:</strong>
+    <code>e781dbebe0956322476cd8841675ad9a22e9d680c6dec7a47f5d23c35829c367</code>
+  </div>
+
+  <div class="callout">
+    <strong>QA:</strong>
+    30/30 frozen matches,
+    all 37 model features present,
+    no null/NaN/Inf,
+    zero duplicate observation keys,
+    exact label and horizon counts.
+  </div>
+
+</section>
+
+<section class="section">
+
+  <div class="section-head">
+    <h2>What happens next</h2>
+
+    <p>
+      Repair the development baseline without
+      adding new researcher degrees of freedom.
+    </p>
+  </div>
+
+  <div class="flow">
+    <div class="node">
+      <b>Correct y</b><br>
+      44 labels
+    </div>
+
+    <span class="arrow">→</span>
+
+    <div class="node">
+      <b>Same X</b><br>
+      37 features
+    </div>
+
+    <span class="arrow">→</span>
+
+    <div class="node">
+      <b>Same CV</b><br>
+      5 folds
+    </div>
+
+    <span class="arrow">→</span>
+
+    <div class="node">
+      <b>Same models</b><br>
+      V0 + H2
+    </div>
+
+    <span class="arrow">→</span>
+
+    <div class="node">
+      <b>No retuning</b><br>
+      freeze
+    </div>
+
+    <span class="arrow">→</span>
+
+    <div class="node">
+      <b>D_CONFIRM</b><br>
+      one formal eval
+    </div>
+  </div>
+
+  <div class="callout warn">
+    <strong>
+      Historical V0/V1 metrics are now
+      pre-label-repair evidence.
+    </strong>
+
+    Keep them for research history,
+    but do not treat them as the final
+    canonical baseline until the corrected-label
+    rerun is complete.
+  </div>
+
+  <p>
+    <a
+      href="../assets/sources/v2_integrity_repair_record.md"
+      download
+    >
+      Download the complete V2 integrity repair record ↓
+    </a>
+  </p>
+
+</section>
+<footer class="footer"><a href="../index.html">CS2 Tactical Intelligence Lab</a><span>V2 data integrity passed · baseline rebuild pending · September 2026</span><a href="../pages/evidence.html#v2-integrity">Inspect the evidence ↗</a></footer></div></main></div><script src="../assets/site.js"></script></body></html>
