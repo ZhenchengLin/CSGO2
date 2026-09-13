@@ -113,11 +113,52 @@ def convex_hull_area_xy(team):
 # Labels
 # ==================================================
 
-def build_plant_lookup(bomb):
+def build_plant_lookup(demo):
+    """
+    Build the canonical round -> plant label lookup.
+
+    Plant-label contract
+    --------------------
+    1. Only plant events physically inside the round interval
+       are label-eligible.
+
+    2. For a valid plant event:
+         BombsiteA -> A_PLANT
+         BombsiteB -> B_PLANT
+
+    3. A plant event outside [round.start, round.end] is a
+       GHOST_PLANT_EVENT and cannot create a label.
+
+    4. If round metadata says a plant occurred but no valid
+       plant event exists, the site label is unresolved.
+       That round must be excluded rather than guessed from
+       demo.rounds.bomb_site.
+
+    Returns
+    -------
+    lookup:
+        Canonical valid plant information by round.
+
+    issues:
+        Deterministic integrity findings. Ghost plants are
+        warnings; PLANT_LABEL_UNRESOLVED requires round
+        exclusion.
+    """
+
     lookup = {}
+    issues = []
+
+    rounds = {
+        int(row["round_num"]): row
+        for row in (
+            demo.rounds
+            .sort("round_num")
+            .iter_rows(named=True)
+        )
+    }
 
     plants = (
-        bomb
+        demo.bomb
         .filter(pl.col("event") == "plant")
         .select([
             "round_num",
@@ -130,13 +171,50 @@ def build_plant_lookup(bomb):
         ])
     )
 
+    # --------------------------------------------------------
+    # Accept only plant events inside the owning round.
+    # --------------------------------------------------------
+
     for row in plants.iter_rows(named=True):
 
-        round_num = row["round_num"]
+        round_num = int(row["round_num"])
+        plant_tick = int(row["tick"])
+
+        round_row = rounds.get(round_num)
+
+        if round_row is None:
+            issues.append({
+                "round_num": round_num,
+                "reason": "PLANT_WITHOUT_ROUND",
+            })
+            continue
+
+        round_start = round_row["start"]
+        round_end = round_row["end"]
+
+        if (
+            round_start is None
+            or round_end is None
+        ):
+            # Round timing validation is handled by
+            # build_observations().
+            continue
+
+        if not (
+            int(round_start)
+            <= plant_tick
+            <= int(round_end)
+        ):
+            issues.append({
+                "round_num": round_num,
+                "reason": "GHOST_PLANT_EVENT",
+            })
+            continue
 
         if round_num in lookup:
             raise ValueError(
-                f"Multiple plants in round {round_num}"
+                "Multiple valid plants in "
+                f"round {round_num}"
             )
 
         if row["bombsite"] == "BombsiteA":
@@ -147,15 +225,40 @@ def build_plant_lookup(bomb):
 
         else:
             raise ValueError(
-                f"Unknown bombsite: {row['bombsite']}"
+                f"Unknown bombsite: "
+                f"{row['bombsite']}"
             )
 
         lookup[round_num] = {
-            "plant_tick": row["tick"],
+            "plant_tick": plant_tick,
             "label": label,
         }
 
-    return lookup
+    # --------------------------------------------------------
+    # Metadata can confirm that a plant happened, but its
+    # bomb_site field is not trusted for A/B semantics.
+    #
+    # If metadata says "plant" and there is no valid plant
+    # event, we cannot construct a canonical label.
+    # --------------------------------------------------------
+
+    for round_num, round_row in rounds.items():
+
+        metadata_plant_tick = (
+            round_row["bomb_plant"]
+        )
+
+        if (
+            metadata_plant_tick is not None
+            and round_num not in lookup
+        ):
+            issues.append({
+                "round_num": round_num,
+                "reason":
+                    "PLANT_LABEL_UNRESOLVED",
+            })
+
+    return lookup, issues
 
 
 # ==================================================
@@ -163,9 +266,16 @@ def build_plant_lookup(bomb):
 # ==================================================
 
 def build_observations(demo):
-    plant_lookup = build_plant_lookup(
-        demo.bomb
+    plant_lookup, plant_issues = (
+        build_plant_lookup(demo)
     )
+
+    unresolved_plant_rounds = {
+        issue["round_num"]
+        for issue in plant_issues
+        if issue["reason"]
+        == "PLANT_LABEL_UNRESOLVED"
+    }
 
     observations = []
     invalid_rounds = []
@@ -202,6 +312,14 @@ def build_observations(demo):
             invalid_rounds.append({
                 "round_num": round_num,
                 "reason": "INVALID_TIMING_ORDER",
+            })
+            continue
+
+        if round_num in unresolved_plant_rounds:
+            invalid_rounds.append({
+                "round_num": round_num,
+                "reason":
+                    "PLANT_LABEL_UNRESOLVED",
             })
             continue
 
@@ -500,10 +618,8 @@ def resolve_observation_ticks(
     # Plant lookup
     # ----------------------------------------------
 
-    plant_lookup = (
-        build_plant_lookup(
-            demo.bomb
-        )
+    plant_lookup, _ = (
+        build_plant_lookup(demo)
     )
 
     resolved = []
