@@ -241,7 +241,8 @@ def main():
 
         features, invalid_rounds = (
             build_features_for_demo(
-                demo_path
+                demo_path,
+                allow_missing_snapshot_exclusions=True,
             )
         )
 

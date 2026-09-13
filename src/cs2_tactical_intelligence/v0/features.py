@@ -408,6 +408,8 @@ MAX_HISTORICAL_CURRENT_LATENESS_TICKS = 1
 def resolve_observation_ticks(
     demo,
     observations,
+    *,
+    allow_missing_snapshot_exclusions=False,
 ):
     """
     Resolve nominal V0 observation ticks onto actual
@@ -524,6 +526,16 @@ def resolve_observation_ticks(
         )
 
         if not available_ticks:
+            if allow_missing_snapshot_exclusions:
+                print(
+                    "  ⚠️ observation excluded "
+                    f"| round={round_num} "
+                    f"| horizon={obs['horizon_sec']}s "
+                    f"| nominal_tick={nominal_target} "
+                    "| reason=MISSING_PLAYER_SNAPSHOT"
+                )
+                continue
+
             raise ValueError(
                 f"No player snapshots for "
                 f"round={round_num}"
@@ -542,6 +554,23 @@ def resolve_observation_ticks(
         if position >= len(
             available_ticks
         ):
+            if allow_missing_snapshot_exclusions:
+                last_tick = (
+                    available_ticks[-1]
+                    if available_ticks
+                    else None
+                )
+
+                print(
+                    "  ⚠️ observation excluded "
+                    f"| round={round_num} "
+                    f"| horizon={obs['horizon_sec']}s "
+                    f"| nominal_tick={nominal_target} "
+                    f"| last_player_tick={last_tick} "
+                    "| reason=MISSING_PLAYER_SNAPSHOT"
+                )
+                continue
+
             raise ValueError(
                 "No player snapshot at/after "
                 f"nominal target: "
@@ -565,6 +594,18 @@ def resolve_observation_ticks(
             >
             MAX_HISTORICAL_CURRENT_LATENESS_TICKS
         ):
+            if allow_missing_snapshot_exclusions:
+                print(
+                    "  ⚠️ observation excluded "
+                    f"| round={round_num} "
+                    f"| horizon={obs['horizon_sec']}s "
+                    f"| nominal_tick={nominal_target} "
+                    f"| actual_tick={actual_target} "
+                    f"| lateness_ticks={lateness_ticks} "
+                    "| reason=PLAYER_SNAPSHOT_OUTSIDE_TOLERANCE"
+                )
+                continue
+
             raise ValueError(
                 "Historical snapshot lateness "
                 "exceeds V0 tolerance: "
@@ -1297,6 +1338,8 @@ def build_feature_row(
 
 def build_features_for_demo(
     demo_path,
+    *,
+    allow_missing_snapshot_exclusions=False,
 ):
     demo_path = Path(demo_path)
 
@@ -1326,6 +1369,9 @@ def build_features_for_demo(
         resolve_observation_ticks(
             demo,
             observations,
+            allow_missing_snapshot_exclusions=(
+                allow_missing_snapshot_exclusions
+            ),
         )
     )
 
