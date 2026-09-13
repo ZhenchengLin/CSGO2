@@ -333,6 +333,64 @@ def get_bomb_position(
             "DROPPED",
         )
 
+    # ----------------------------------------------
+    # Historical-demo pickup fallback
+    #
+    # Some historical demos do not expose C4 in the
+    # player inventory even though the bomb-event
+    # stream identifies the current carrier.
+    #
+    # Use the latest pickup event only to identify
+    # WHO carries the bomb. The bomb position comes
+    # from that player's CURRENT snapshot position.
+    #
+    # This fallback is intentionally fail-closed.
+    # ----------------------------------------------
+
+    if event["event"] == "pickup":
+        pickup_steamid = event["steamid"]
+
+        if pickup_steamid is None:
+            raise ValueError(
+                f"Pickup event missing steamid at "
+                f"round={round_num}, tick={tick}"
+            )
+
+        pickup_players = snapshot.filter(
+            (pl.col("side") == "t")
+            & (
+                pl.col("steamid")
+                == pickup_steamid
+            )
+        )
+
+        if pickup_players.height != 1:
+            raise ValueError(
+                f"Pickup carrier resolution failed at "
+                f"round={round_num}, tick={tick}: "
+                f"steamid={pickup_steamid}, "
+                f"matches={pickup_players.height}"
+            )
+
+        carrier = pickup_players.row(
+            0,
+            named=True,
+        )
+
+        if carrier["health"] <= 0:
+            raise ValueError(
+                f"Latest pickup carrier is not alive at "
+                f"round={round_num}, tick={tick}: "
+                f"steamid={pickup_steamid}"
+            )
+
+        return (
+            carrier["X"],
+            carrier["Y"],
+            carrier["Z"],
+            "CARRIED",
+        )
+
     raise ValueError(
         f"Unexpected bomb state "
         f"round={round_num}, tick={tick}: "
