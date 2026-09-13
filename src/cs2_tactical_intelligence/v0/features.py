@@ -378,6 +378,17 @@ def build_observations(demo):
 # Bomb state reconstruction
 # ==================================================
 
+class BombStateUnavailableError(ValueError):
+    """
+    Bomb state cannot be reconstructed from information
+    available at or before the requested tick.
+
+    This represents missing historical evidence, not an
+    invariant violation.
+    """
+    pass
+
+
 def get_bomb_position(
     demo,
     snapshot,
@@ -433,7 +444,7 @@ def get_bomb_position(
     )
 
     if events.height == 0:
-        raise ValueError(
+        raise BombStateUnavailableError(
             f"No bomb state available at "
             f"round={round_num}, tick={tick}"
         )
@@ -1456,6 +1467,7 @@ def build_features_for_demo(
     demo_path,
     *,
     allow_missing_snapshot_exclusions=False,
+    allow_unresolved_bomb_exclusions=False,
 ):
     demo_path = Path(demo_path)
 
@@ -1538,29 +1550,63 @@ def build_features_for_demo(
         # resulting bomb positions.
         # ==========================================
 
-        (
-            bomb_x,
-            bomb_y,
-            bomb_z,
-            bomb_state_now,
-        ) = get_bomb_position(
-            demo,
-            current,
-            round_num,
-            target_tick,
-        )
+        try:
+            (
+                bomb_x,
+                bomb_y,
+                bomb_z,
+                bomb_state_now,
+            ) = get_bomb_position(
+                demo,
+                current,
+                round_num,
+                target_tick,
+            )
 
-        (
-            bomb_x_prev,
-            bomb_y_prev,
-            bomb_z_prev,
-            bomb_state_prev,
-        ) = get_bomb_position(
-            demo,
-            previous,
-            round_num,
-            previous_tick,
-        )
+        except BombStateUnavailableError:
+
+            if not allow_unresolved_bomb_exclusions:
+                raise
+
+            print(
+                "  ⚠️ observation excluded"
+                f" | round={round_num}"
+                f" | horizon={horizon_sec}s"
+                f" | tick={target_tick}"
+                " | bomb_phase=current"
+                " | reason=BOMB_STATE_UNRESOLVED"
+            )
+
+            continue
+
+        try:
+            (
+                bomb_x_prev,
+                bomb_y_prev,
+                bomb_z_prev,
+                bomb_state_prev,
+            ) = get_bomb_position(
+                demo,
+                previous,
+                round_num,
+                previous_tick,
+            )
+
+        except BombStateUnavailableError:
+
+            if not allow_unresolved_bomb_exclusions:
+                raise
+
+            print(
+                "  ⚠️ observation excluded"
+                f" | round={round_num}"
+                f" | horizon={horizon_sec}s"
+                f" | tick={previous_tick}"
+                " | bomb_phase=previous"
+                " | reason=BOMB_STATE_UNRESOLVED"
+            )
+
+            continue
 
         # ==========================================
         # Shared feature calculation

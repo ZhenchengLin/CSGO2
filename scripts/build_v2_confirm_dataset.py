@@ -243,6 +243,7 @@ def main():
             build_features_for_demo(
                 demo_path,
                 allow_missing_snapshot_exclusions=True,
+                allow_unresolved_bomb_exclusions=True,
             )
         )
 
