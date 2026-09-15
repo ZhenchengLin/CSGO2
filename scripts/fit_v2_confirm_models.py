@@ -53,7 +53,7 @@ from cs2_tactical_intelligence.v0.schema import (
 
 
 DATASET_PATH = Path(
-    "data/processed/v0_dataset_v2_timing_corrected.parquet"
+    "data/processed/v0_dataset_v3_label_corrected.parquet"
 )
 
 SCRIPT_PATH = Path(
