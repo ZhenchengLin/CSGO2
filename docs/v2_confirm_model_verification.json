@@ -1,14 +1,14 @@
 {
   "verification_status": "PASS",
-  "verified_utc": "2026-09-12T22:35:33.353331+00:00",
+  "verified_utc": "2026-09-15T08:10:43.150545+00:00",
   "model_freeze_record": "docs/v2_confirm_model_freeze.json",
-  "fit_git_commit": "9836c9e88b8bdfa2203658500ef58e413e2f0dae",
-  "training_dataset_sha256": "092268fa06b0ed93e21aae444eeed81d3794887dc7bc8e7cf0ba9f4aa806e8ff",
+  "fit_git_commit": "9d0fa02c6697ed45cebb61830b0580f32f5f802c",
+  "training_dataset_sha256": "11ba58b9362fbf9cd47f2b79b1699cde1bfc0a9e144c63bd65901a02a24a0f28",
   "artifact_sha256": {
-    "v0": "11cf15c55b96c4927f9c5f33df126e20be42713d13ba5f032dec824e4d0510be",
-    "h2_plant": "3f403b784700569ce4dd0cdbe3931e905f587e92ea4febacf52bec5801849fe2",
-    "h2_site": "db039ab23ef5a40b697228635bbfd92ef6a5e9f29bd15e28ab43675e562eae33",
-    "h2_platt": "f956c49af9548239266b946f163eaedcd056e4c2378d938d7bcf4aa6db701f9f"
+    "v0": "ad70c4c1bac868b976f5322e065750de18a779ef8204906045ee32b53b5fb2aa",
+    "h2_plant": "05510e51da7783db5b4d2dd77ca705346422eca49bbdb6eb9e9ac649de60822e",
+    "h2_site": "fe4a754d0a94370a10824b3cbf30aed2ce8ab144bee4945eac641f17b944754b",
+    "h2_platt": "97544cba05c86c6f8bcc65a8c9427b8a4a06ba075477a806c065e8023ef5bfed"
   },
   "checks": {
     "confirmation_data_accessed": false,

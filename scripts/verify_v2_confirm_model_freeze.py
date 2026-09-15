@@ -354,8 +354,8 @@ def main():
         platt[
             "n_calibration_rows"
         ]
-        == 886,
-        "Expected 886 Site calibration rows.",
+        == 842,
+        "Expected 842 Site calibration rows.",
     )
 
     require(
