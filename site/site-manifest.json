@@ -40,5 +40,21 @@
   "legacy_label_repairs": 44,
   "legacy_label_repair_fraction": 0.02609727164887307,
   "baseline_status": "Pre-repair V0/V1 metrics are historical; corrected no-retuning rebuild required",
-  "next_gate": "Rebuild corrected V0/H2 with frozen methods, freeze artifacts, then one formal D_CONFIRM evaluation"
+  "next_gate": "Rebuild corrected V0/H2 with frozen methods, freeze artifacts, then one formal D_CONFIRM evaluation",
+  "current_stage": "V2 independent confirmation complete",
+  "v2_confirmation": {
+    "status": "complete",
+    "matches": 30,
+    "observations": 2269,
+    "v0_log_loss": 0.83509,
+    "h2_log_loss": 0.836643,
+    "h2_minus_v0_log_loss": 0.001553,
+    "h2_better_matches": 12,
+    "paired_mean_delta": 0.003106,
+    "bootstrap_95_ci": [
+      -0.007585,
+      0.014124
+    ],
+    "decision": "V0 remains primary; H2 not promoted"
+  }
 }
